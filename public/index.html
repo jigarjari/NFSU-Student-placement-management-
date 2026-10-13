@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFSU Student Placement Management System | National Forensic Sciences University</title>
+  <meta name="description" content="Official centralized, secure, policy-driven student placement management web application for National Forensic Sciences University (NFSU), session 2026-27.">
+  <meta name="keywords" content="NFSU, Placement Cell, National Forensic Sciences University, Gandhinagar, Digital Forensics, Cybersecurity, Placement Guidelines 2026-27">
+  
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <!-- ============================================================== -->
+  <!-- 1. AUTHENTICATION GATEWAY (LOGIN SCREEN)                        -->
+  <!-- Shown when unauthenticated                                      -->
+  <!-- ============================================================== -->
+  <div id="auth-portal-screen" class="auth-gateway-screen">
+    <div class="auth-gateway-card">
+      <div class="auth-card-header">
+        <div class="auth-emblem">🏛️</div>
+        <div class="auth-institution-title">National Forensic Sciences University</div>
+        <div class="auth-institution-subtitle">Ministry of Home Affairs, Government of India</div>
+        <div class="auth-portal-badge">Placement Cell • Session 2026–27</div>
+      </div>
+
+      <div class="auth-card-body">
+        <!-- One-Click Institutional Evaluation Profiles -->
+        <div class="auth-preset-title">⚡ Quick Sign-In (Evaluation Personas)</div>
+        <div class="auth-presets-grid">
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('admin')">
+            <span>👑</span> <span>Placement Admin</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('officer')">
+            <span>📋</span> <span>Placement Officer</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('coord_dfis')">
+            <span>🔍</span> <span>Coordinator (DFIS)</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('coord_cs')">
+            <span>💻</span> <span>Coordinator (CS)</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_aplus')">
+            <span>🎓</span> <span>Student (A+ Tier)</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_b')">
+            <span>🎓</span> <span>Student (B Tier)</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_unplaced')">
+            <span>🎓</span> <span>Student (Unplaced)</span>
+          </button>
+          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_absent')">
+            <span>⚠️</span> <span>Student (Flagged)</span>
+          </button>
+        </div>
+
+        <div class="auth-divider">
+          <span>Or Sign In with Institutional Credentials</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-field-block">
+            <label for="login-username">Institutional Username</label>
+            <input type="text" id="login-username" class="form-input-text" placeholder="e.g. admin or roll number" required>
+          </div>
+
+          <div class="form-field-block">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-input-text" placeholder="••••••••••••" required>
+          </div>
+
+          <div class="form-field-block" id="mfa-code-block" style="display: none;">
+            <label for="login-mfa" style="color: var(--accent-amber);">Multi-Factor Auth Code (TOTP / SMS)</label>
+            <input type="text" id="login-mfa" class="form-input-text" placeholder="Enter 6-digit code (Demo: 123456)">
+          </div>
+
+          <div id="login-error-msg" style="display: none; color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 12px; font-weight: 600;"></div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;">
+            🔐 Secure Sign In
+          </button>
+        </form>
+
+        <div class="auth-footer-notice">
+          <strong>Security Notice:</strong> Authorized access only. All sessions, data modifications, and IP addresses are cryptographically tracked in a tamper-evident SHA-256 audit ledger in compliance with NFSU Information Security Policies.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 2. AUTHENTICATED PORTAL (MAIN APP)                             -->
+  <!-- Shown once authenticated with valid JWT                        -->
+  <!-- ============================================================== -->
+  <div id="authenticated-app-container" style="display: none;">
+
+    <!-- Top Institutional Header -->
+    <header class="portal-header">
+      <div class="portal-brand">
+        <div class="portal-brand-crest">🏛️</div>
+        <div class="portal-brand-text">
+          <h1 id="portal-title">NFSU Student Placement Portal</h1>
+          <p>National Forensic Sciences University • Placement Session 2026–27</p>
+        </div>
+      </div>
+
+      <div class="portal-user-controls">
+        <!-- Logged-in User Card -->
+        <div class="user-identity-card" id="user-identity-card">
+          <div class="user-avatar-circle" id="user-avatar-initials">AD</div>
+          <div class="user-text-info">
+            <span class="user-full-name" id="user-display-name">Placement Administrator</span>
+            <span class="user-role-badge" id="user-display-role">ADMIN</span>
+          </div>
+        </div>
+
+        <button id="theme-toggle-btn" class="btn btn-outline btn-sm" title="Toggle Theme">🌙</button>
+        
+        <!-- Switch Persona Button -->
+        <button id="switch-persona-btn" class="btn btn-outline btn-sm" title="Switch User Persona">
+          🔄 Switch User
+        </button>
+
+        <!-- Logout Button -->
+        <button id="logout-btn" class="btn btn-danger btn-sm" title="Sign Out">
+          🚪 Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- App Layout: Sidebar + Main Content -->
+    <div class="portal-container">
+
+      <!-- Left Navigation Sidebar -->
+      <aside class="portal-sidebar">
+        <nav class="sidebar-nav-list" id="sidebar-nav-list">
+          <span class="sidebar-section-label">Portal Navigation</span>
+          
+          <!-- Admin / Officer Navigation Links -->
+          <a class="sidebar-link active" data-view="dashboard" id="nav-dashboard">
+            <span class="sidebar-link-icon">📊</span> Executive Dashboard
+          </a>
+          <a class="sidebar-link" data-view="students" id="nav-students">
+            <span class="sidebar-link-icon">🎓</span> Student Database
+          </a>
+          <a class="sidebar-link" data-view="drives" id="nav-drives">
+            <span class="sidebar-link-icon">🏢</span> Recruitment Drives
+          </a>
+          <a class="sidebar-link" data-view="offers" id="nav-offers">
+            <span class="sidebar-link-icon">💼</span> Offers & 24h Window
+          </a>
+          <a class="sidebar-link" data-view="policy" id="nav-policy">
+            <span class="sidebar-link-icon">⚖️</span> Policy Rule Engine
+          </a>
+          <a class="sidebar-link" data-view="audit" id="nav-audit">
+            <span class="sidebar-link-icon">🛡️</span> Tamper-Evident Audit
+          </a>
+          <a class="sidebar-link" data-view="security-lab" id="nav-security-lab">
+            <span class="sidebar-link-icon">🧪</span> Security & Test Lab
+          </a>
+          <a class="sidebar-link" data-view="backup" id="nav-backup">
+            <span class="sidebar-link-icon">💾</span> Backup & Recovery
+          </a>
+
+          <!-- Student-specific Navigation Links (Visible when student logs in) -->
+          <a class="sidebar-link" data-view="student-portal" id="nav-student-portal" style="display: none;">
+            <span class="sidebar-link-icon">👤</span> My Placement Profile
+          </a>
+        </nav>
+
+        <div class="sidebar-system-card">
+          <div style="font-weight: 700; color: #ffffff; margin-bottom: 2px;">NFSU Placement Cell</div>
+          <div>Gandhinagar HQ • Accredited A+</div>
+          <div style="color: var(--accent-emerald); margin-top: 4px;">● Cryptographic Ledger Active</div>
+        </div>
+      </aside>
+
+      <!-- Main Content Views -->
+      <main class="portal-content-body">
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: EXECUTIVE DASHBOARD                    -->
+        <!-- ============================================== -->
+        <section class="content-section active" id="view-dashboard">
+          <div class="section-hero-header">
+            <div>
+              <h2>📊 Executive Placement Analytics</h2>
+              <p>Key recruitment indicators, package distributions, and course outcomes across NFSU programmes.</p>
+            </div>
+            <div class="action-button-group">
+              <select id="dashboard-course-filter" class="form-select">
+                <option value="All">All 5 Programmes</option>
+                <option value="M.Tech. CS">M.Tech. Computer Science</option>
+                <option value="M.Tech. AIDS">M.Tech. AI & Data Science</option>
+                <option value="B.Tech.-M.Tech. CS">B.Tech.–M.Tech. CSE (Integrated)</option>
+                <option value="M.Sc. CS">M.Sc. Computer Science</option>
+                <option value="M.Sc. DFIS">M.Sc. Digital Forensics & InfoSec</option>
+              </select>
+              <button id="refresh-dashboard-btn" class="btn btn-outline btn-sm">🔄 Refresh</button>
+            </div>
+          </div>
+
+          <!-- 4 Clean Primary KPI Cards -->
+          <div class="kpi-summary-grid">
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-card-title">Registered Candidates</span>
+                <span class="kpi-card-icon">🎓</span>
+              </div>
+              <div class="kpi-card-value" id="kpi-total-registered">--</div>
+              <div class="kpi-card-footer" id="kpi-reg-sub">Eligible for recruitment drives</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-card-title">Unique Placed Students</span>
+                <span class="kpi-card-icon" style="color: var(--accent-emerald);">✅</span>
+              </div>
+              <div class="kpi-card-value" id="kpi-unique-placed" style="color: var(--accent-emerald);">--</div>
+              <div class="kpi-card-footer" id="kpi-placed-rate">--% Placement Rate</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-card-title">Top FTE CTC</span>
+                <span class="kpi-card-icon" style="color: var(--nfsu-gold);">🏆</span>
+              </div>
+              <div class="kpi-card-value" id="kpi-highest-ctc">-- LPA</div>
+              <div class="kpi-card-footer">Category A+ Tier</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-card-title">Median FTE Package</span>
+                <span class="kpi-card-icon" style="color: var(--primary-light);">📈</span>
+              </div>
+              <div class="kpi-card-value" id="kpi-median-ctc">-- LPA</div>
+              <div class="kpi-card-footer" id="kpi-average-stipend-sub">Avg Stipend: ₹-- /mo</div>
+            </div>
+          </div>
+
+          <!-- Course-Wise Breakdown Table -->
+          <div class="content-panel">
+            <div class="panel-header-bar">
+              <div>
+                <h3 class="panel-heading">📚 Programme-Wise Placement Distribution</h3>
+                <p class="panel-subtitle">Audited outcomes across NFSU Computer Science & Digital Forensics departments</p>
+              </div>
+              <span class="tag tag-neutral">5 Programmes</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="clean-table" id="course-breakdown-table">
+                <thead>
+                  <tr>
+                    <th>Programme</th>
+                    <th>Registered</th>
+                    <th>Placed</th>
+                    <th>Unplaced</th>
+                    <th>Placement %</th>
+                    <th>Internship (I)</th>
+                    <th>FTE (F)</th>
+                    <th>I + FTE</th>
+                    <th>Highest CTC</th>
+                    <th>Median CTC</th>
+                    <th>Avg Stipend</th>
+                  </tr>
+                </thead>
+                <tbody id="course-breakdown-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Category Tiers & Subsequent Drive Eligibility -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="content-panel">
+              <div class="panel-header-bar">
+                <h3 class="panel-heading">🏷️ Placements by Policy Tier</h3>
+              </div>
+              <div id="category-metrics-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Category metrics rendered by JS -->
+              </div>
+            </div>
+
+            <div class="content-panel">
+              <div class="panel-header-bar">
+                <div>
+                  <h3 class="panel-heading">🔄 Subsequent Drive Eligibility</h3>
+                  <p class="panel-subtitle">Students eligible to switch under NFSU Clause 3.2</p>
+                </div>
+                <span class="tag tag-success" id="switching-eligible-count-badge">-- Eligible</span>
+              </div>
+              <div class="table-wrapper" style="max-height: 220px;">
+                <table class="clean-table">
+                  <thead>
+                    <tr>
+                      <th>Placement ID</th>
+                      <th>Student</th>
+                      <th>Current Status</th>
+                      <th>Permitted Switch Rule</th>
+                    </tr>
+                  </thead>
+                  <tbody id="switching-eligible-tbody">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: STUDENT DATABASE                       -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-students">
+          <div class="section-hero-header">
+            <div>
+              <h2>🎓 Student Placement Database</h2>
+              <p>Searchable institutional database with course filtering, eligibility tracking, and multi-offer history.</p>
+            </div>
+            <div class="action-button-group">
+              <button id="open-add-student-modal-btn" class="btn btn-primary btn-sm">➕ Add Student</button>
+              <button id="open-import-csv-modal-btn" class="btn btn-outline btn-sm">📥 Bulk Import</button>
+              <button id="export-students-csv-btn" class="btn btn-outline btn-sm">📤 Export CSV</button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="search-filter-row">
+            <div class="input-with-icon">
+              <span class="input-icon">🔍</span>
+              <input type="text" id="student-search-input" placeholder="Search by name, roll no, company, email...">
+            </div>
+
+            <select id="student-course-select" class="form-select">
+              <option value="All">All Programmes</option>
+              <option value="M.Tech. CS">M.Tech. CS</option>
+              <option value="M.Tech. AIDS">M.Tech. AIDS</option>
+              <option value="B.Tech.-M.Tech. CS">B.Tech.-M.Tech. CS</option>
+              <option value="M.Sc. CS">M.Sc. CS</option>
+              <option value="M.Sc. DFIS">M.Sc. DFIS</option>
+            </select>
+
+            <select id="student-status-select" class="form-select">
+              <option value="All">All Statuses</option>
+              <option value="Unplaced">Unplaced</option>
+              <option value="Internship only">Internship only</option>
+              <option value="FTE only">FTE only</option>
+              <option value="Internship + PPO/FTE">Internship + PPO/FTE</option>
+            </select>
+
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" id="show-archived-checkbox"> Archived
+            </label>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="clean-table" id="students-table">
+              <thead>
+                <tr>
+                  <th>Placement ID</th>
+                  <th>Student Name</th>
+                  <th>Programme</th>
+                  <th>CGPA</th>
+                  <th>Contact (Role Masked)</th>
+                  <th>Registration</th>
+                  <th>Eligibility</th>
+                  <th>Placement Status</th>
+                  <th>Company</th>
+                  <th>Tier</th>
+                  <th>CTC (LPA)</th>
+                  <th>Penalty</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="students-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: RECRUITMENT DRIVES & ATTENDANCE       -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-drives">
+          <div class="section-hero-header">
+            <div>
+              <h2>🏢 Recruitment Drives & Attendance Management</h2>
+              <p>Schedule campus recruitment drives, record attendance, and enforce absenteeism guidelines.</p>
+            </div>
+            <div class="action-button-group">
+              <button id="open-post-drive-modal-btn" class="btn btn-primary btn-sm">➕ Post New Drive</button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;" id="drives-grid">
+            <!-- Drive cards rendered by JS -->
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 4: OFFERS & 24H DEADLINES                -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-offers">
+          <div class="section-hero-header">
+            <div>
+              <h2>💼 Offers & 24-Hour Acceptance Window</h2>
+              <p>Track recruitment offers, real-time 24-hour decision countdowns, PPO statuses, and NOC requests.</p>
+            </div>
+            <div class="action-button-group">
+              <button id="open-issue-offer-modal-btn" class="btn btn-primary btn-sm">➕ Issue Offer</button>
+              <button id="open-request-noc-modal-btn" class="btn btn-outline btn-sm">📄 Request NOC</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="clean-table" id="offers-table">
+              <thead>
+                <tr>
+                  <th>Offer ID</th>
+                  <th>Student</th>
+                  <th>Programme</th>
+                  <th>Company</th>
+                  <th>Offer Type</th>
+                  <th>Category</th>
+                  <th>CTC (LPA)</th>
+                  <th>Stipend</th>
+                  <th>24h Deadline Window</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="offers-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 5: POLICY RULE ENGINE & SIMULATOR        -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-policy">
+          <div class="section-hero-header">
+            <div>
+              <h2>⚖️ NFSU Placement Policy Rule Engine (2026–27)</h2>
+              <p>Automated policy verification, category switching checks, and emergency exception appeals.</p>
+            </div>
+          </div>
+
+          <!-- Interactive Simulator Card -->
+          <div class="content-panel">
+            <div class="panel-header-bar">
+              <div>
+                <h3 class="panel-heading">🔬 Switching Eligibility Simulator</h3>
+                <p class="panel-subtitle">Evaluate any candidate against NFSU Placement Policy Clause 3.2 in real time</p>
+              </div>
+              <span class="tag tag-a-plus">Clause 3.2 Automation</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div>
+                <div class="form-field-block">
+                  <label for="simulator-student-select">Select Student</label>
+                  <select id="simulator-student-select" class="form-select" style="width: 100%;">
+                    <!-- Populated via JS -->
+                  </select>
+                </div>
+                <div id="simulator-student-preview" style="background: var(--bg-input); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 14px; font-size: 0.85rem;">
+                  <!-- Preview details -->
+                </div>
+              </div>
+
+              <div>
+                <div class="form-field-block">
+                  <label for="sim-company">Target Recruiter Name</label>
+                  <input type="text" id="sim-company" class="form-input-text" value="Palo Alto Networks">
+                </div>
+                <div class="form-grid-2col">
+                  <div class="form-field-block">
+                    <label for="sim-offer-type">Target Offer Type</label>
+                    <select id="sim-offer-type" class="form-select" style="width: 100%;">
+                      <option value="F">FTE Only (F)</option>
+                      <option value="I">Internship Only (I)</option>
+                      <option value="I+F">Internship + PPO/FTE (I+F)</option>
+                    </select>
+                  </div>
+                  <div class="form-field-block">
+                    <label for="sim-ctc">Target Package (LPA)</label>
+                    <input type="number" id="sim-ctc" class="form-input-text" step="0.5" value="18.5">
+                  </div>
+                </div>
+                <button id="run-simulation-btn" class="btn btn-primary" style="width: 100%; margin-top: 6px;">⚡ Run Policy Evaluation</button>
+              </div>
+            </div>
+
+            <!-- Simulation Result Card -->
+            <div id="simulation-verdict-box" style="display: none;"></div>
+          </div>
+
+          <!-- Policy Rules Mandate Summary Table -->
+          <div class="content-panel">
+            <div class="panel-header-bar">
+              <h3 class="panel-heading">📜 NFSU 2026–27 Placement Policy Rules Summary</h3>
+            </div>
+            <div class="table-wrapper">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Compensation CTC</th>
+                    <th>Switching Policy Rule (Section 3.2)</th>
+                    <th>Offer-Type Restrictions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="tag tag-a-plus">Category A+</span></td>
+                    <td><strong>&ge; ₹16.0 LPA</strong></td>
+                    <td><strong>No switching permitted</strong>. Student is completely out of the placement process.</td>
+                    <td>Locked completely across all organizations.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="tag tag-a">Category A</span></td>
+                    <td><strong>₹10.0 – 16.0 LPA</strong></td>
+                    <td>Switching allowed <strong>ONLY to Category A+ companies</strong> (&ge; ₹16 LPA).</td>
+                    <td>I &rarr; FTE allowed; duplicate FTE blocked.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="tag tag-b">Category B</span></td>
+                    <td><strong>₹6.0 – 10.0 LPA</strong></td>
+                    <td>Switching allowed where <strong>new package is at least 1.5 times</strong> existing CTC.</td>
+                    <td>1.5x multiplier enforced.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="tag tag-c">Category C</span></td>
+                    <td><strong>Below ₹6.0 LPA</strong></td>
+                    <td>Eligible for <strong>higher-category opportunities</strong> (B, A, A+). Lateral C to C blocked.</td>
+                    <td>Upgrades allowed.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Emergency Exceptions -->
+          <div class="content-panel">
+            <div class="panel-header-bar">
+              <div>
+                <h3 class="panel-heading">🛡️ Emergency Exception Petitions (Absenteeism Relief)</h3>
+                <p class="panel-subtitle">Review medical or institutional emergency exception appeals</p>
+              </div>
+              <button id="open-submit-exception-modal-btn" class="btn btn-outline btn-sm">➕ Submit Exception Petition</button>
+            </div>
+            <div class="table-wrapper">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Student</th>
+                    <th>Programme</th>
+                    <th>Type</th>
+                    <th>Justification</th>
+                    <th>Status</th>
+                    <th>Reviewed By</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="exceptions-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 6: TAMPER-EVIDENT AUDIT TRAIL             -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-audit">
+          <div class="section-hero-header">
+            <div>
+              <h2>🛡️ Tamper-Evident SHA-256 Audit Trail</h2>
+              <p>Cryptographically linked hash chain guaranteeing integrity and non-repudiation for all sensitive actions.</p>
+            </div>
+            <div class="action-button-group">
+              <button id="verify-audit-chain-btn" class="btn btn-primary btn-sm">🔍 Verify Integrity</button>
+              <button id="simulate-tamper-btn" class="btn btn-danger btn-sm">⚠️ Simulate Forensic Tamper</button>
+              <button id="repair-chain-btn" class="btn btn-outline btn-sm">🔧 Re-Anchor Chain</button>
+            </div>
+          </div>
+
+          <!-- Integrity Status Banner -->
+          <div id="audit-integrity-banner" class="verdict-box ALLOWED" style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <strong id="audit-banner-title">✅ Cryptographic Hash Chain Valid</strong>
+                <div id="audit-banner-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                  All audit log records verified against continuous SHA-256 hash sequence.
+                </div>
+              </div>
+              <span class="tag tag-success" id="audit-banner-badge">ZERO TAMPERING</span>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="clean-table" id="audit-table">
+              <thead>
+                <tr>
+                  <th>Seq ID</th>
+                  <th>Timestamp</th>
+                  <th>Actor</th>
+                  <th>Role</th>
+                  <th>Action</th>
+                  <th>Entity</th>
+                  <th>Before / After Payload Diff</th>
+                  <th>SHA-256 Hash</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 7: SECURITY & POLICY TEST LAB             -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-security-lab">
+          <div class="section-hero-header">
+            <div>
+              <h2>🧪 Security & Policy Test Lab (Deliverable 7)</h2>
+              <p>Automated verification test harness covering policy invariants and web application attack defenses.</p>
+            </div>
+            <div class="action-button-group">
+              <button id="run-all-tests-btn" class="btn btn-primary btn-sm">▶️ Execute All Tests</button>
+            </div>
+          </div>
+
+          <div id="test-summary-card" class="content-panel" style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="font-size: 1.15rem; font-weight: 700;" id="test-suite-status">Status: Ready to Execute</div>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;" id="test-suite-counts">
+                  13 Automated Test Cases covering NFSU Guidelines & Web Security Defenses
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <span class="tag tag-neutral" id="test-pass-badge">Passed: --</span>
+                <span class="tag tag-neutral" id="test-rate-badge">Pass Rate: --%</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="test-cases-container">
+            <!-- Test case cards injected by JS -->
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 8: BACKUP & RECOVERY                     -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-backup">
+          <div class="section-hero-header">
+            <div>
+              <h2>💾 Encrypted Backup & Tested Recovery</h2>
+              <p>Generate AES-256 encrypted database snapshots and test the restoration procedure for business continuity.</p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div class="content-panel">
+              <h3 class="panel-heading" style="margin-bottom: 12px;">🔐 Encrypted Snapshot Export</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+                Exports complete encrypted database tables using AES-256-CBC encryption with institutional key derivation.
+              </p>
+              <button id="download-encrypted-backup-btn" class="btn btn-primary">⬇️ Download Encrypted Backup (.enc.json)</button>
+            </div>
+
+            <div class="content-panel">
+              <h3 class="panel-heading" style="margin-bottom: 12px;">🔄 Tested Restoration Procedure</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+                Decrypts, schema-validates, and verifies table restoration without data loss.
+              </p>
+              <button id="trigger-test-restore-btn" class="btn btn-outline">🧪 Test Restoration Procedure</button>
+              <div id="restore-result-box" style="margin-top: 14px; font-size: 0.85rem;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 9: STUDENT SELF-SERVICE PORTAL            -->
+        <!-- (Dedicated clean view for logged-in students)   -->
+        <!-- ============================================== -->
+        <section class="content-section" id="view-student-portal">
+          <div class="student-portal-banner">
+            <div>
+              <h3 id="sp-student-name">Devashish Sen</h3>
+              <div style="font-size: 0.88rem; opacity: 0.9;" id="sp-student-course-roll">
+                Roll: NFSU26-CS-001 • Programme: M.Tech. Computer Science
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="tag tag-a-plus" id="sp-placement-status-badge" style="font-size: 0.85rem; padding: 6px 14px;">
+                Placed (Category A+)
+              </span>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <div class="content-panel">
+              <h3 class="panel-heading" style="margin-bottom: 12px;">📋 My Placement Details</h3>
+              <div id="sp-details-list" style="font-size: 0.88rem; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+
+            <div class="content-panel">
+              <h3 class="panel-heading" style="margin-bottom: 12px;">⚖️ My Switching Eligibility Status</h3>
+              <div id="sp-switching-status-box" style="font-size: 0.88rem;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="content-panel">
+            <div class="panel-header-bar">
+              <h3 class="panel-heading">💼 My Received Offers & 24h Acceptance Window</h3>
+            </div>
+            <div class="table-wrapper">
+              <table class="clean-table" id="sp-offers-table">
+                <thead>
+                  <tr>
+                    <th>Offer ID</th>
+                    <th>Company</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Package / Stipend</th>
+                    <th>24h Deadline Window</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="sp-offers-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODALS                                                         -->
+  <!-- ============================================================== -->
+
+  <!-- Modal: Add Student -->
+  <div class="modal-backdrop" id="modal-add-student">
+    <div class="modal-window">
+      <div class="modal-window-header">
+        <h3>➕ Add Student Profile</h3>
+        <button class="modal-btn-close" data-close="modal-add-student">&times;</button>
+      </div>
+      <form id="form-add-student">
+        <div class="modal-window-body">
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Placement ID (Unique)</label>
+              <input type="text" name="placement_id" class="form-input-text" placeholder="e.g. NFSU26-DFIS-010" required>
+            </div>
+            <div class="form-field-block">
+              <label>Student Full Name</label>
+              <input type="text" name="student_name" class="form-input-text" placeholder="Full legal name" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Programme</label>
+              <select name="course" class="form-select" style="width: 100%;" required>
+                <option value="M.Tech. CS">M.Tech. Computer Science</option>
+                <option value="M.Tech. AIDS">M.Tech. Artificial Intelligence and Data Science</option>
+                <option value="B.Tech.-M.Tech. CS">B.Tech.–M.Tech. Computer Science and Engineering</option>
+                <option value="M.Sc. CS">M.Sc. Computer Science</option>
+                <option value="M.Sc. DFIS">M.Sc. Digital Forensics and Information Security</option>
+              </select>
+            </div>
+            <div class="form-field-block">
+              <label>Academic Batch</label>
+              <input type="text" name="batch" class="form-input-text" value="2025–2027" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Institutional Email</label>
+              <input type="email" name="email_id" class="form-input-text" placeholder="name@nfsu.ac.in" required>
+            </div>
+            <div class="form-field-block">
+              <label>Registered Mobile</label>
+              <input type="text" name="mobile_number" class="form-input-text" placeholder="+91 98765 43210" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>CGPA</label>
+              <input type="number" name="cgpa" class="form-input-text" step="0.1" min="0" max="10" value="8.5">
+            </div>
+            <div class="form-field-block">
+              <label>Registration Status</label>
+              <select name="registration_status" class="form-select" style="width: 100%;">
+                <option value="Registered">Registered</option>
+                <option value="Pending verification">Pending verification</option>
+                <option value="Not registered">Not registered</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-field-block">
+            <label>Administrative Remarks</label>
+            <input type="text" name="remarks" class="form-input-text" placeholder="Academic notes or verification details">
+          </div>
+        </div>
+        <div class="modal-window-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-add-student">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Student History View -->
+  <div class="modal-backdrop" id="modal-student-history">
+    <div class="modal-window" style="max-width: 780px;">
+      <div class="modal-window-header">
+        <h3 id="history-modal-title">📜 Placement History Timeline</h3>
+        <button class="modal-btn-close" data-close="modal-student-history">&times;</button>
+      </div>
+      <div class="modal-window-body" id="history-modal-body">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="modal-window-footer">
+        <button type="button" class="btn btn-outline" data-close="modal-student-history">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Post Drive -->
+  <div class="modal-backdrop" id="modal-post-drive">
+    <div class="modal-window">
+      <div class="modal-window-header">
+        <h3>🏢 Post Recruitment Drive</h3>
+        <button class="modal-btn-close" data-close="modal-post-drive">&times;</button>
+      </div>
+      <form id="form-post-drive">
+        <div class="modal-window-body">
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Company Name</label>
+              <input type="text" name="company_name" class="form-input-text" required placeholder="e.g. Cisco Systems">
+            </div>
+            <div class="form-field-block">
+              <label>Job Title</label>
+              <input type="text" name="job_title" class="form-input-text" required placeholder="e.g. Security Analyst">
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Offer Type</label>
+              <select name="offer_type" class="form-select" style="width: 100%;" required>
+                <option value="F">FTE Only (F)</option>
+                <option value="I">Internship Only (I)</option>
+                <option value="I+F">Internship + PPO/FTE (I+F)</option>
+              </select>
+            </div>
+            <div class="form-field-block">
+              <label>Annual Package CTC (LPA)</label>
+              <input type="number" name="ctc_lpa" class="form-input-text" step="0.5" placeholder="e.g. 15.0">
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Monthly Stipend (INR)</label>
+              <input type="number" name="stipend_amount" class="form-input-text" placeholder="e.g. 45000">
+            </div>
+            <div class="form-field-block">
+              <label>Min CGPA</label>
+              <input type="number" name="min_cgpa" class="form-input-text" step="0.1" value="7.0">
+            </div>
+          </div>
+
+          <div class="form-field-block">
+            <label>Drive Date</label>
+            <input type="date" name="drive_date" class="form-input-text" required>
+          </div>
+
+          <div class="form-field-block">
+            <label>Eligible Programmes</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;">
+              <label><input type="checkbox" name="eligible_courses" value="M.Tech. CS" checked> M.Tech. CS</label>
+              <label><input type="checkbox" name="eligible_courses" value="M.Tech. AIDS" checked> M.Tech. AIDS</label>
+              <label><input type="checkbox" name="eligible_courses" value="B.Tech.-M.Tech. CS" checked> B.Tech.–M.Tech. CS</label>
+              <label><input type="checkbox" name="eligible_courses" value="M.Sc. CS" checked> M.Sc. CS</label>
+              <label><input type="checkbox" name="eligible_courses" value="M.Sc. DFIS" checked> M.Sc. DFIS</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-window-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-post-drive">Cancel</button>
+          <button type="submit" class="btn btn-primary">Publish Drive</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Record Attendance & Absenteeism -->
+  <div class="modal-backdrop" id="modal-record-attendance">
+    <div class="modal-window">
+      <div class="modal-window-header">
+        <h3>📋 Record Attendance & Activity Check</h3>
+        <button class="modal-btn-close" data-close="modal-record-attendance">&times;</button>
+      </div>
+      <form id="form-record-attendance">
+        <input type="hidden" name="drive_id" id="attendance-drive-id">
+        <div class="modal-window-body">
+          <div class="form-field-block">
+            <label>Drive / Company</label>
+            <input type="text" id="attendance-drive-name" class="form-input-text" readonly>
+          </div>
+
+          <div class="form-field-block">
+            <label>Select Candidate</label>
+            <select name="student_id" id="attendance-student-select" class="form-select" style="width: 100%;" required>
+              <!-- Injected via JS -->
+            </select>
+          </div>
+
+          <div class="form-field-block">
+            <label>Activity Type</label>
+            <select name="activity_type" class="form-select" style="width: 100%;" required>
+              <option value="Pre-Placement Talk">Pre-Placement Talk</option>
+              <option value="Online Test">Online Test</option>
+              <option value="Technical Interview">Technical Interview</option>
+              <option value="HR Interview">HR Interview</option>
+            </select>
+          </div>
+
+          <div class="form-field-block">
+            <label>Attendance Status</label>
+            <select name="attended" id="attendance-status-select" class="form-select" style="width: 100%;" required>
+              <option value="1">✅ Present / Attended</option>
+              <option value="0">❌ Absent (Automatic 3-Drive Ban Policy Clause 3.2)</option>
+            </select>
+          </div>
+
+          <div class="form-field-block" id="excuse-group" style="display: none;">
+            <label style="color: var(--accent-amber);">
+              <input type="checkbox" name="excused" value="1"> Approved Emergency Exception (Waive 3-Drive Ban)
+            </label>
+          </div>
+
+          <div class="form-field-block">
+            <label>Notes / Observer Remarks</label>
+            <input type="text" name="notes" class="form-input-text" placeholder="Optional notes">
+          </div>
+        </div>
+        <div class="modal-window-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-record-attendance">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Attendance</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Issue Offer -->
+  <div class="modal-backdrop" id="modal-issue-offer">
+    <div class="modal-window">
+      <div class="modal-window-header">
+        <h3>💼 Issue Student Offer</h3>
+        <button class="modal-btn-close" data-close="modal-issue-offer">&times;</button>
+      </div>
+      <form id="form-issue-offer">
+        <div class="modal-window-body">
+          <div class="form-field-block">
+            <label>Student</label>
+            <select name="student_id" id="offer-student-select" class="form-select" style="width: 100%;" required>
+              <!-- Injected via JS -->
+            </select>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Company Name</label>
+              <input type="text" name="company_name" class="form-input-text" required placeholder="e.g. Microsoft">
+            </div>
+            <div class="form-field-block">
+              <label>Offer Type</label>
+              <select name="offer_type" class="form-select" style="width: 100%;" required>
+                <option value="F">FTE Only (F)</option>
+                <option value="I">Internship Only (I)</option>
+                <option value="I+F">Internship + PPO/FTE (I+F)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Annual Package CTC (LPA)</label>
+              <input type="number" name="ctc_lpa" class="form-input-text" step="0.5" placeholder="e.g. 18.0">
+            </div>
+            <div class="form-field-block">
+              <label>Monthly Stipend (INR)</label>
+              <input type="number" name="stipend_amount" class="form-input-text" placeholder="e.g. 50000">
+            </div>
+          </div>
+
+          <div class="form-grid-2col">
+            <div class="form-field-block">
+              <label>Acceptance Deadline (Hours)</label>
+              <input type="number" name="deadline_hours" class="form-input-text" value="24" required>
+            </div>
+            <div class="form-field-block">
+              <label>Off-Campus Offer?</label>
+              <select name="is_off_campus" class="form-select" style="width: 100%;">
+                <option value="0">No (On-Campus)</option>
+                <option value="1">Yes (Off-Campus Offer)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-window-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-issue-offer">Cancel</button>
+          <button type="submit" class="btn btn-primary">Validate & Issue Offer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Bulk CSV Import -->
+  <div class="modal-backdrop" id="modal-import-csv">
+    <div class="modal-window">
+      <div class="modal-window-header">
+        <h3>📥 Controlled CSV Bulk Import</h3>
+        <button class="modal-btn-close" data-close="modal-import-csv">&times;</button>
+      </div>
+      <form id="form-import-csv">
+        <div class="modal-window-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+            Paste CSV formatted text with columns: <code>placement_id,student_name,email_id,course,batch,mobile_number,cgpa</code>.
+          </p>
+          <textarea id="import-csv-textarea" class="form-input-text" rows="8" placeholder="placement_id,student_name,email_id,course,batch,mobile_number,cgpa&#10;NFSU26-DFIS-015,Rahul Dev,rahul.dev@nfsu.ac.in,M.Sc. DFIS,2025–2027,+91 98111 00222,8.6"></textarea>
+        </div>
+        <div class="modal-window-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-import-csv">Cancel</button>
+          <button type="submit" class="btn btn-primary">Validate & Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/students.js"></script>
+  <script src="js/drives.js"></script>
+  <script src="js/offers.js"></script>
+  <script src="js/policy.js"></script>
+  <script src="js/audit.js"></script>
+  <script src="js/securityLab.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
