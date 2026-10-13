@@ -212,15 +212,23 @@ As a system built for National Forensic Sciences University, security controls a
    - Built-in verification algorithm verifies that $\text{Hash}_i$ accurately chains to $\text{Hash}_{i-1}$ from the genesis block.
    - An interactive **Forensic Tamper Simulation** demonstration allows administrators to test out-of-band record tampering and watch the verification engine identify the exact modified record sequence.
 
-7. **AES-256 Encrypted Backup and Tested Restore**:
-   - Full system snapshots are encrypted via AES-256-CBC using PBKDF2/Scrypt key derivation.
-   - Tested restoration route decrypts, validates table schema integrity, and logs the restoration event.
+8. **Brute-Force & Credential Stuffing Rate Limiting**:
+   - Sliding-window rate limiters on `/api/auth/login` (max 10 attempts/min per IP) and global API routes (max 120 req/min).
+
+9. **Server-Side Token Revocation Blacklist (Anti-Replay Defense)**:
+   - When users sign out via `/api/auth/logout`, their JWT is blacklisted server-side in the revocation registry, preventing token replay attacks.
+
+10. **Recursive XSS Input Sanitization**:
+    - Deep request body and query sanitizer strips `<script>`, `javascript:`, event handlers, and malicious DOM injection vectors before database storage.
+
+11. **PII Masking & Confidentiality**:
+    - Mobile numbers and emails strictly masked for non-administrative roles (e.g. `+91 98*** ***10`).
 
 ---
 
 ### 6. Automated Verification & Test Suite Results (Deliverable 7)
 
-The system includes an automated test harness (`/api/tests/run`) that evaluates all 13 critical functional and security invariants:
+The system includes an automated test harness (`/api/tests/run`) that evaluates all 16 critical functional and security invariants:
 
 | # | Test Suite | Test Case Name | Category | Result |
 | :---: | :--- | :--- | :--- | :---: |
@@ -237,8 +245,11 @@ The system includes an automated test harness (`/api/tests/run`) that evaluates 
 | 11 | Cybersecurity | Privilege Escalation Defense: Self-Placement Tampering Blocked | Authorization & RBAC | **PASS** |
 | 12 | Cybersecurity | SQL Injection Defense: Parameterized Query Verification | Input & Query Security | **PASS** |
 | 13 | Cybersecurity | Audit Log Cryptographic Tamper-Evidence (SHA-256 Chain) | Audit Integrity | **PASS** |
+| 14 | Cybersecurity | Cross-Site Scripting (XSS) Input Sanitization Defense | Application Layer Defense | **PASS** |
+| 15 | Cybersecurity | Server-Side Token Revocation & Anti-Replay Defense | Session Security | **PASS** |
+| 16 | Cybersecurity | PII Data Masking & Least-Privilege Exposure Control | Privacy & Confidentiality | **PASS** |
 
-**Overall Result: 13 / 13 Passed (100% Pass Rate). Status: `ALL_TESTS_PASSED`.**
+**Overall Result: 16 / 16 Passed (100% Pass Rate). Status: `ALL_TESTS_PASSED`.**
 
 ---
 

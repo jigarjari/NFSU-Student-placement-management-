@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { isTokenRevoked } = require('../services/securityService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'NFSU_CYBER_PLACEMENT_SECRET_KEY_2026';
 
@@ -9,12 +10,23 @@ function authenticate(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
+
+  // 1. Check Token Revocation Blacklist (Anti-Replay / Post-Logout Protection)
+  if (isTokenRevoked(token)) {
+    return res.status(401).json({ error: 'Invalid Session: This authentication token has been revoked / logged out.' });
+  }
+
+  // 2. Cryptographic signature and expiration verification
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
+    req.token = token;
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired session token.' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Session Expired: Please authenticate again.' });
+    }
+    return res.status(401).json({ error: 'Invalid or compromised session token.' });
   }
 }
 

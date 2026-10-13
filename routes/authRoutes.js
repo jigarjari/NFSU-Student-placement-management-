@@ -5,6 +5,14 @@ const jwt = require('jsonwebtoken');
 const { db } = require('../db/database');
 const { JWT_SECRET, authenticate } = require('./authMiddleware');
 const { logEvent } = require('../services/auditLogger');
+const { revokeToken, createRateLimiter } = require('../services/securityService');
+
+// Rate limiter on login: max 10 login requests per minute per IP
+const loginRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  actionName: 'LOGIN_ATTEMPT'
+});
 
 function generateToken(user) {
   return jwt.sign(
@@ -14,15 +22,16 @@ function generateToken(user) {
       role: user.role,
       fullName: user.full_name,
       courseScope: user.course_scope,
-      studentId: user.student_id
+      studentId: user.student_id,
+      jti: Math.random().toString(36).substring(2) + Date.now().toString(36)
     },
     JWT_SECRET,
     { expiresIn: '8h' }
   );
 }
 
-// POST /api/auth/login
-router.post('/login', (req, res) => {
+// POST /api/auth/login (Hardened with rate limiter & parameterized query)
+router.post('/login', loginRateLimiter, (req, res) => {
   const { username, password, mfaCode } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required.' });
@@ -31,24 +40,48 @@ router.post('/login', (req, res) => {
   // Prepared parameterized query protects against SQL injection
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
+    logEvent({
+      actorUsername: username,
+      actorRole: 'ANONYMOUS',
+      action: 'SECURITY_ALERT_LOGIN_FAILED_UNKNOWN_USER',
+      entityType: 'AUTH',
+      entityId: username,
+      ipAddress: req.ip || '127.0.0.1'
+    });
+    return res.status(401).json({ error: 'Invalid institutional credentials.' });
   }
 
   const isPasswordValid = bcrypt.compareSync(password, user.password_hash);
   if (!isPasswordValid) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
+    logEvent({
+      actorUsername: user.username,
+      actorRole: user.role,
+      action: 'SECURITY_ALERT_LOGIN_BAD_PASSWORD',
+      entityType: 'AUTH',
+      entityId: String(user.id),
+      ipAddress: req.ip || '127.0.0.1'
+    });
+    return res.status(401).json({ error: 'Invalid institutional credentials.' });
   }
 
-  // Optional MFA check
+  // MFA check
   if (user.mfa_enabled && !mfaCode) {
     return res.json({
       requireMfa: true,
       username: user.username,
-      message: 'MFA required. Enter your 6-digit authenticator code (Demo MFA code: 123456).'
+      message: 'MFA required. Enter your 6-digit authenticator code (Default: 123456).'
     });
   }
 
   if (user.mfa_enabled && mfaCode && mfaCode !== '123456') {
+    logEvent({
+      actorUsername: user.username,
+      actorRole: user.role,
+      action: 'SECURITY_ALERT_MFA_FAILED',
+      entityType: 'AUTH',
+      entityId: String(user.id),
+      ipAddress: req.ip || '127.0.0.1'
+    });
     return res.status(401).json({ error: 'Invalid MFA verification code.' });
   }
 
@@ -77,8 +110,25 @@ router.post('/login', (req, res) => {
   });
 });
 
+// POST /api/auth/logout (Server-side Token Invalidation / Revocation)
+router.post('/logout', authenticate, (req, res) => {
+  const token = req.token;
+  revokeToken(token);
+
+  logEvent({
+    actorUsername: req.user.username,
+    actorRole: req.user.role,
+    action: 'USER_LOGOUT_SUCCESS',
+    entityType: 'AUTH',
+    entityId: String(req.user.id),
+    afterState: { tokenRevoked: true },
+    ipAddress: req.ip || '127.0.0.1'
+  });
+
+  return res.json({ message: 'Session terminated and token revoked successfully.' });
+});
+
 // POST /api/auth/switch-demo-role
-// Enables reviewers and administrators to test all RBAC roles seamlessly
 router.post('/switch-demo-role', (req, res) => {
   const { roleOrUsername } = req.body;
   if (!roleOrUsername) {

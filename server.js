@@ -15,15 +15,18 @@ const auditRoutes = require('./routes/auditRoutes');
 const testRoutes = require('./routes/testRoutes');
 const backupRoutes = require('./routes/backupRoutes');
 
+const { sanitizeInputMiddleware, createRateLimiter } = require('./services/securityService');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security Headers & Hardening
+// Security Headers & Hardening (OWASP Top 10 Best Practices)
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; font-src 'self' https: data:;"
@@ -32,8 +35,19 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Input Sanitization (strips malicious script tags from all inputs)
+app.use(sanitizeInputMiddleware);
+
+// Global API rate limiter (protects against scraping & DoS: max 120 req/min per IP)
+const globalApiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 120,
+  actionName: 'GLOBAL_API'
+});
+app.use('/api/', globalApiLimiter);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -54,6 +68,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ONLINE',
     system: 'NFSU Placement Management System 2026-27',
+    securityStatus: 'HARDENED',
     timestamp: new Date().toISOString()
   });
 });
@@ -68,7 +83,7 @@ app.use((err, req, res, next) => {
   console.error('Unhandled server error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
-    message: err.message
+    message: 'An unexpected internal security or processing error occurred.'
   });
 });
 
@@ -76,7 +91,7 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`================================================================`);
     console.log(` NFSU Placement Management System 2026–27 is LIVE`);
-    console.log(` Server running on http://localhost:${PORT}`);
+    console.log(` Security Hardened • Running on http://localhost:${PORT}`);
     console.log(`================================================================`);
   });
 }

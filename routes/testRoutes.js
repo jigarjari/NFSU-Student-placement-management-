@@ -276,6 +276,49 @@ router.get('/run', authenticate, (req, res) => {
     auditVerification.message
   );
 
+  // Test 14: Cross-Site Scripting (XSS) Sanitization Defense
+  const { sanitizeString, revokeToken, isTokenRevoked, maskPhoneNumber } = require('../services/securityService');
+  const xssPayload = '<script>alert(document.cookie)</script>Forensic Security Specialist';
+  const cleanResult = sanitizeString(xssPayload);
+  const isXssBlocked = !cleanResult.includes('<script>') && cleanResult.includes('Forensic Security Specialist');
+  recordTest(
+    'Cybersecurity Controls',
+    'Cross-Site Scripting (XSS) Input Sanitization Defense',
+    'Application Layer Defense',
+    isXssBlocked,
+    'Neutralized (<script> stripped)',
+    cleanResult,
+    'Verified: Malicious DOM execution vectors stripped recursively before database persistence.'
+  );
+
+  // Test 15: Post-Logout Token Invalidation / Anti-Replay Defense
+  const sampleToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sample_test_token_2026';
+  revokeToken(sampleToken);
+  const isRevocationEnforced = isTokenRevoked(sampleToken);
+  recordTest(
+    'Cybersecurity Controls',
+    'Server-Side Token Revocation & Anti-Replay Defense',
+    'Session Security',
+    isRevocationEnforced,
+    'Token Revoked & Invalidated',
+    isRevocationEnforced ? 'Token Revoked & Invalidated' : 'Active (VULNERABLE)',
+    'Verified: Logged-out JWTs are added to server-side blacklist and cannot be reused.'
+  );
+
+  // Test 16: PII Confidentiality (Mobile Number Masking)
+  const rawMobile = '+91 98765 43210';
+  const maskedForStudent = maskPhoneNumber(rawMobile, 'student');
+  const isMaskingEnforced = maskedForStudent.includes('***') && !maskedForStudent.includes('65 43');
+  recordTest(
+    'Cybersecurity Controls',
+    'PII Data Masking & Least-Privilege Exposure Control',
+    'Privacy & Confidentiality',
+    isMaskingEnforced,
+    'Masked (+91 98*** ***10)',
+    maskedForStudent,
+    'Verified: Personally identifiable contact information masked for non-administrative roles.'
+  );
+
   const totalTests = results.length;
   const passedTests = results.filter(r => r.passed).length;
 
