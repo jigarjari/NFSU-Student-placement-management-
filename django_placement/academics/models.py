@@ -97,6 +97,10 @@ class StudentAcademicRecord(models.Model):
         return f"{self.enrollment_number} - {self.user.get_full_name() or self.user.username} (CGPA: {self.cgpa})"
 
     @property
+    def student(self):
+        return self.user
+
+    @property
     def is_verified(self):
         return self.verification_status == VerificationStatus.VERIFIED
 

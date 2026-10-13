@@ -9,8 +9,8 @@ from django.utils import timezone
 
 from accounts.decorators import role_required
 from accounts.models import UserProfile, UserRole
-from academics.models import Course, Department, StudentAcademicRecord, PlacementStatus
-from companies.models import Company, RecruiterMembership
+from academics.models import Course, Department, StudentAcademicRecord, PlacementStatus, VerificationStatus
+from companies.models import Company, RecruiterMembership, CompanyApprovalStatus
 from placements.models import PlacementDrive, DriveStatus, PlacementPolicy
 from placements.services import PlacementEligibilityEngine
 from applications.models import Application, ApplicationStatus, Offer, OfferStatus, Interview
@@ -48,7 +48,7 @@ def admin_dashboard_view(request):
 
     total_courses = Course.objects.count()
     total_companies = Company.objects.count()
-    pending_companies = Company.objects.filter(is_verified=False).count()
+    pending_companies = Company.objects.filter(approval_status=CompanyApprovalStatus.PENDING).count()
     active_drives = PlacementDrive.objects.filter(status=DriveStatus.PUBLISHED).count()
     total_applications = Application.objects.count()
     total_offers = Offer.objects.count()
@@ -77,7 +77,7 @@ def admin_dashboard_view(request):
 @login_required
 @role_required([UserRole.OFFICER])
 def officer_dashboard_view(request):
-    pending_companies = Company.objects.filter(is_verified=False).order_by('-created_at')
+    pending_companies = Company.objects.filter(approval_status=CompanyApprovalStatus.PENDING).order_by('-created_at')
     pending_drives = PlacementDrive.objects.filter(status=DriveStatus.PENDING_APPROVAL).select_related('company')
     active_drives = PlacementDrive.objects.filter(status=DriveStatus.PUBLISHED).select_related('company')
 
@@ -107,14 +107,14 @@ def officer_dashboard_view(request):
 @role_required([UserRole.COORDINATOR])
 def coordinator_dashboard_view(request):
     assigned_courses = Course.objects.filter(coordinator=request.user)
-    students = StudentAcademicRecord.objects.filter(course__in=assigned_courses).select_related('student', 'course')
+    students = StudentAcademicRecord.objects.filter(course__in=assigned_courses).select_related('user', 'course')
 
     total_students = students.count()
-    verified_students = students.filter(is_verified=True).count()
-    unverified_students = students.filter(is_verified=False).count()
+    verified_students = students.filter(verification_status=VerificationStatus.VERIFIED).count()
+    unverified_students = students.filter(verification_status=VerificationStatus.UNVERIFIED).count()
     placed_students = students.exclude(current_placement_status=PlacementStatus.UNPLACED).count()
 
-    recent_unverified = students.filter(is_verified=False)[:10]
+    recent_unverified = students.filter(verification_status=VerificationStatus.UNVERIFIED)[:10]
 
     context = {
         'assigned_courses': assigned_courses,
@@ -229,10 +229,10 @@ def reports_view(request):
     # Scoped report data
     if role == UserRole.COORDINATOR:
         assigned_courses = Course.objects.filter(coordinator=user)
-        students = StudentAcademicRecord.objects.filter(course__in=assigned_courses).select_related('student', 'course')
+        students = StudentAcademicRecord.objects.filter(course__in=assigned_courses).select_related('user', 'course')
     else:
         assigned_courses = Course.objects.all()
-        students = StudentAcademicRecord.objects.all().select_related('student', 'course')
+        students = StudentAcademicRecord.objects.all().select_related('user', 'course')
 
     course_stats = []
     for c in assigned_courses:
