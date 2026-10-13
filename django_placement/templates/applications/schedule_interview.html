@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Schedule Interview{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-custom p-4">
+            <div class="d-flex align-items-center mb-3">
+                <a href="{% url 'applications:applicant_list' application.drive.id %}" class="btn btn-outline-secondary btn-sm me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="h5 fw-bold mb-0">Schedule Recruitment Interview</h2>
+            </div>
+            <p class="text-muted small mb-4">Set up an interview round for <strong>{{ application.student.get_full_name|default:application.student.username }}</strong>.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Interview Round Name</label>
+                    <input type="text" name="round_name" class="form-control" value="Technical Assessment / Interview" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Date & Time</label>
+                    <input type="datetime-local" name="scheduled_at" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Meeting Link / Campus Venue</label>
+                    <input type="text" name="meeting_link" class="form-control" placeholder="e.g. Google Meet link or Lab 304, NFSU Cyber Block">
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-nfsu-primary py-2 fw-semibold">
+                        <i class="bi bi-calendar-check me-1"></i> Confirm & Notify Candidate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

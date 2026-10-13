@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Applicants - {{ drive.job_title }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'placements:drive_detail' drive.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Drive
+    </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>Candidate Applications</h2>
+        <p class="text-muted small mb-0">Recruitment Pipeline for <strong>{{ drive.job_title }}</strong> at {{ drive.company.name }}</p>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="d-flex gap-2 mb-4 overflow-auto pb-2">
+    <a href="{% url 'applications:applicant_list' drive.id %}" class="btn btn-sm {% if not selected_status %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        All Applicants ({{ drive.applications.count }})
+    </a>
+    {% for val, label in statuses %}
+        <a href="{% url 'applications:applicant_list' drive.id %}?status={{ val }}" class="btn btn-sm {% if selected_status == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ label }}
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Applicants Table -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Applicant</th>
+                        <th>Programme</th>
+                        <th>CGPA</th>
+                        <th>Applied On</th>
+                        <th>Current Status</th>
+                        <th class="text-end pe-4">Pipeline Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ app.student.get_full_name|default:app.student.username }}</div>
+                                <div class="text-muted small"><code>{{ app.student.academic_record.enrollment_number|default:app.student.username }}</code></div>
+                            </td>
+                            <td>
+                                <div>{{ app.student.academic_record.course.code|default:"—" }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ app.student.academic_record.cgpa|default:"—" }}</span>
+                            </td>
+                            <td class="text-muted small">
+                                {{ app.applied_at|date:"M d, Y" }}
+                            </td>
+                            <td>
+                                <span class="badge {% if app.status == 'OFFER_ACCEPTED' %}bg-success{% elif app.status == 'OFFERED' %}bg-warning text-dark{% elif app.status == 'SHORTLISTED' %}bg-info text-dark{% elif app.status == 'REJECTED' %}bg-danger-subtle text-danger border border-danger-subtle{% else %}bg-light text-dark border{% endif %}">
+                                    {{ app.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-1 align-items-center">
+                                    <!-- Status Update Dropdown Form -->
+                                    <form method="post" action="{% url 'applications:update_status' app.id %}" class="d-inline-flex">
+                                        {% csrf_token %}
+                                        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="width: 140px;">
+                                            {% for val, label in statuses %}
+                                                <option value="{{ val }}" {% if app.status == val %}selected{% endif %}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+
+                                    <!-- Interview Scheduler Link -->
+                                    <a href="{% url 'applications:schedule_interview' app.id %}" class="btn btn-outline-primary btn-sm" title="Schedule Interview Round">
+                                        <i class="bi bi-calendar-plus"></i>
+                                    </a>
+
+                                    <!-- Issue Offer Link -->
+                                    <a href="{% url 'applications:issue_offer' app.id %}" class="btn btn-outline-success btn-sm" title="Issue Placement Offer">
+                                        <i class="bi bi-award"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">No candidate applications in this status filter.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

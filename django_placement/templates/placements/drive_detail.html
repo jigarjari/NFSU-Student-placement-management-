@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ drive.job_title }} - {{ drive.company.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'placements:drive_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Placement Drives
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Drive Specifications -->
+    <div class="col-12 col-lg-8">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <span class="badge {% if drive.category == 'A_PLUS' %}bg-danger{% elif drive.category == 'A' %}bg-primary{% elif drive.category == 'B' %}bg-info text-dark{% else %}bg-secondary{% endif %} mb-2">
+                        {{ drive.get_category_display }}
+                    </span>
+                    <h2 class="h3 fw-bold mb-1 text-dark">{{ drive.job_title }}</h2>
+                    <h3 class="h5 text-primary fw-semibold mb-0">
+                        <i class="bi bi-building"></i> {{ drive.company.name }}
+                    </h3>
+                </div>
+                <div>
+                    <span class="badge {% if drive.status == 'PUBLISHED' %}bg-success{% elif drive.status == 'PENDING_APPROVAL' %}bg-warning text-dark{% else %}bg-secondary{% endif %} px-3 py-2">
+                        {{ drive.get_status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <hr>
+
+            <h4 class="h6 fw-bold text-uppercase text-muted mb-2">Job Description & Responsibilities</h4>
+            <div class="p-3 bg-light rounded mb-4" style="white-space: pre-line;">
+                {{ drive.job_description }}
+            </div>
+
+            <h4 class="h6 fw-bold text-uppercase text-muted mb-2">Eligible Academic Programmes</h4>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                {% for course in drive.eligible_courses.all %}
+                    <span class="badge bg-secondary-subtle text-dark border px-2 py-1">
+                        {{ course.code }} — {{ course.name }}
+                    </span>
+                {% empty %}
+                    <span class="text-muted small">Open to all NFSU programmes.</span>
+                {% endfor %}
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <div class="p-3 border rounded bg-white">
+                        <div class="text-muted small">Location</div>
+                        <div class="fw-semibold"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ drive.location }}</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="p-3 border rounded bg-white">
+                        <div class="text-muted small">Drive Date</div>
+                        <div class="fw-semibold"><i class="bi bi-calendar3 text-primary me-1"></i> {{ drive.drive_date|date:"F d, Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Policy Eligibility & Actions -->
+    <div class="col-12 col-lg-4">
+        <!-- Compensation Card -->
+        <div class="card card-custom p-4 mb-4 border-top border-4 border-primary">
+            <h4 class="h6 fw-bold text-uppercase text-muted mb-3">Compensation Package</h4>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted">Annual CTC:</span>
+                <span class="fs-4 fw-bold text-success">₹{{ drive.ctc_lpa }} LPA</span>
+            </div>
+            {% if drive.stipend_monthly > 0 %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Monthly Stipend:</span>
+                    <span class="fw-semibold">₹{{ drive.stipend_monthly }}</span>
+                </div>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted">Engagement Type:</span>
+                <span class="badge bg-light text-dark border">{{ drive.get_offer_type_display }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">Deadline:</span>
+                <span class="text-danger fw-semibold">{{ drive.deadline|date:"M d, Y H:i" }}</span>
+            </div>
+        </div>
+
+        <!-- Student Eligibility Evaluation Panel -->
+        {% if user_role == 'STUDENT' %}
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="h6 fw-bold mb-3 d-flex align-items-center">
+                    <i class="bi bi-shield-check text-primary me-2"></i> Policy Eligibility Engine
+                </h4>
+
+                {% if existing_application %}
+                    <div class="alert alert-info py-2 px-3 small">
+                        <i class="bi bi-info-circle-fill me-1"></i> You submitted an application for this drive on {{ existing_application.applied_at|date:"M d, Y" }}.
+                        <div class="mt-1">Status: <strong>{{ existing_application.get_status_display }}</strong></div>
+                    </div>
+                {% elif evaluation %}
+                    <div class="list-group list-group-flush small mb-3">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>Min CGPA Required ({{ drive.min_cgpa }})</span>
+                            {% if user.academic_record.cgpa >= drive.min_cgpa %}
+                                <span class="badge bg-success"><i class="bi bi-check"></i> Passed ({{ user.academic_record.cgpa }})</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-x"></i> Failed ({{ user.academic_record.cgpa }})</span>
+                            {% endif %}
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>Active Backlogs (Max {{ drive.max_active_backlogs }})</span>
+                            {% if user.academic_record.active_backlogs <= drive.max_active_backlogs %}
+                                <span class="badge bg-success"><i class="bi bi-check"></i> 0</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-x"></i> {{ user.academic_record.active_backlogs }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>Coordinator Verification</span>
+                            {% if user.academic_record.is_verified %}
+                                <span class="badge bg-success"><i class="bi bi-check"></i> Verified</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation"></i> Unverified</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if evaluation.is_eligible %}
+                        <div class="alert alert-success py-2 px-3 small mb-3">
+                            <i class="bi bi-check-circle-fill me-1"></i> <strong>Verified Eligible:</strong> {{ evaluation.reason }}
+                        </div>
+                        <form method="post" action="{% url 'applications:apply_drive' drive.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+                                <i class="bi bi-send-fill me-1"></i> Apply for this Drive
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-danger py-2 px-3 small mb-3">
+                            <i class="bi bi-x-circle-fill me-1"></i> <strong>Ineligible under NFSU Policy:</strong>
+                            <div class="mt-1">{{ evaluation.reason }}</div>
+                        </div>
+                        <button class="btn btn-secondary w-100 py-2" disabled>
+                            <i class="bi bi-lock-fill me-1"></i> Application Restricted
+                        </button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Officer / Admin Actions -->
+        {% if user_role in 'ADMIN,OFFICER' %}
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="h6 fw-bold mb-3">Administrative Controls</h4>
+                {% if drive.status == 'PENDING_APPROVAL' %}
+                    <form method="post" action="{% url 'placements:approve_drive' drive.id %}" class="d-grid gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="publish">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Approve & Publish Drive
+                        </button>
+                    </form>
+                {% elif drive.status == 'PUBLISHED' %}
+                    <form method="post" action="{% url 'placements:approve_drive' drive.id %}" class="d-grid gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="close">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-slash-circle me-1"></i> Close Recruitment Drive
+                        </button>
+                    </form>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{% url 'applications:applicant_list' drive.id %}" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-people-fill me-1"></i> Review Applicants ({{ drive.applications.count }})
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Recruiter Actions -->
+        {% if user_role == 'RECRUITER' %}
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="h6 fw-bold mb-3">Recruiter Pipeline</h4>
+                <a href="{% url 'applications:applicant_list' drive.id %}" class="btn btn-nfsu-primary w-100">
+                    <i class="bi bi-people-fill me-1"></i> View Candidates ({{ drive.applications.count }})
+                </a>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-mortarboard-fill text-success me-2"></i>Student Placement Desk</h2>
+        <p class="text-muted small mb-0">Policy-Driven Drive Eligibility, Application Tracking, and Career Outcomes</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'placements:drive_list' %}" class="btn btn-nfsu-primary btn-sm">
+            <i class="bi bi-briefcase me-1"></i> Browse Drives
+        </a>
+        <a href="{% url 'applications:my_applications' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-text me-1"></i> My Applications
+        </a>
+    </div>
+</div>
+
+<!-- Pending Offer Urgent Banner (24-Hour Rule) -->
+{% if pending_offers %}
+    {% for off in pending_offers %}
+        <div class="alert alert-warning border-warning shadow-sm mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h3 class="h6 fw-bold mb-1 text-dark">
+                        <i class="bi bi-award-fill text-warning me-1"></i> Formal Placement Offer Received from {{ off.application.drive.company.name }}!
+                    </h3>
+                    <p class="mb-0 small text-muted">
+                        Designation: <strong>{{ off.application.drive.job_title }}</strong> • Compensation: <strong>₹{{ off.package_ctc }} LPA</strong>.
+                        <span class="text-danger fw-bold ms-2">
+                            <i class="bi bi-alarm-fill"></i> Mandatory NFSU 24-Hour Acceptance Window ends: {{ off.deadline_window|date:"M d, Y H:i" }}
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'applications:respond_offer' off.id %}" class="btn btn-success btn-sm fw-semibold">
+                        Review & Respond to Offer &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Student Status Cards -->
+<div class="row g-3 mb-4">
+    <!-- Academic Verification Card -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 {% if academic_record.is_verified %}border-success{% else %}border-warning{% endif %}">
+            <div class="text-muted small fw-semibold text-uppercase">Academic Verification</div>
+            <div class="mt-2">
+                {% if academic_record and academic_record.is_verified %}
+                    <span class="badge bg-success-subtle text-success fs-6 border border-success-subtle">
+                        <i class="bi bi-patch-check-fill me-1"></i> Verified Record
+                    </span>
+                    <div class="small text-muted mt-1">CGPA: <strong>{{ academic_record.cgpa }}</strong> | Backlogs: <strong>{{ academic_record.active_backlogs }}</strong></div>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-warning fs-6 border border-warning-subtle">
+                        <i class="bi bi-hourglass-split me-1"></i> Verification Pending
+                    </span>
+                    <div class="small text-muted mt-1">Awaiting coordinator review</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Placement Tier Card -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Placement Status</div>
+            <div class="mt-2">
+                {% if academic_record.current_placement_status == 'UNPLACED' %}
+                    <span class="badge bg-secondary fs-6">Unplaced (Open)</span>
+                    <div class="small text-muted mt-1">Open to apply for all eligible drives</div>
+                {% elif academic_record.current_tier == 'A_PLUS' %}
+                    <span class="badge bg-danger fs-6">Tier A+ (Placed & Frozen)</span>
+                    <div class="small text-muted mt-1">Locked from further drives (Clause 3.2.1)</div>
+                {% elif academic_record.current_tier == 'B' %}
+                    <span class="badge bg-info text-dark fs-6">Tier B Placed (Upgrade Open)</span>
+                    <div class="small text-muted mt-1">Eligible for Tier A/A+ with 1.5x CTC (Clause 3.2.2)</div>
+                {% else %}
+                    <span class="badge bg-primary fs-6">{{ academic_record.get_current_placement_status_display }}</span>
+                    <div class="small text-muted mt-1">Current CTC: ₹{{ academic_record.current_ctc }} LPA</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Absenteeism Infraction Card -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 {% if academic_record.absenteeism_count > 0 %}border-danger{% else %}border-success{% endif %}">
+            <div class="text-muted small fw-semibold text-uppercase">Disciplinary Status</div>
+            <div class="mt-2">
+                {% if academic_record.remaining_ban_drives > 0 %}
+                    <span class="badge bg-danger fs-6"><i class="bi bi-slash-circle me-1"></i> Banned ({{ academic_record.remaining_ban_drives }} Drives)</span>
+                    <div class="small text-danger mt-1">Unexcused interview absence penalty</div>
+                {% else %}
+                    <span class="badge bg-success-subtle text-success fs-6"><i class="bi bi-shield-check me-1"></i> Good Standing</span>
+                    <div class="small text-muted mt-1">Zero active disciplinary infractions</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Eligibility Overview Card -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Active Drive Matches</div>
+            <div class="fs-3 fw-bold text-dark mt-1">{{ eligible_count }} <span class="fs-6 text-muted fw-normal">Eligible</span></div>
+            <div class="text-muted small mt-1">{{ ineligible_count }} Ineligible by NFSU Policy</div>
+        </div>
+    </div>
+</div>
+
+<!-- Opportunities & Policy Eligibility Matrix -->
+<div class="card card-custom mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h3 class="h6 fw-bold mb-0">Active Placement Drives & Eligibility Breakdown</h3>
+        <a href="{% url 'placements:drive_list' %}" class="small text-decoration-none">View All Drives &rarr;</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Company & Role</th>
+                        <th>CTC / Package</th>
+                        <th>Min. CGPA</th>
+                        <th>Policy Eligibility Result</th>
+                        <th class="text-end pe-3">Application</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in drives_with_status %}
+                        <tr>
+                            <td class="ps-3">
+                                <strong>{{ item.drive.job_title }}</strong>
+                                <div class="text-muted small">{{ item.drive.company.name }} • {{ item.drive.get_offer_type_display }}</div>
+                            </td>
+                            <td>₹{{ item.drive.ctc_lpa }} LPA</td>
+                            <td>{{ item.drive.min_cgpa }}</td>
+                            <td>
+                                {% if item.is_eligible %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Eligible
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Ineligible
+                                    </span>
+                                    <div class="text-danger small mt-1">{{ item.reason }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3">
+                                {% if item.has_applied %}
+                                    <span class="badge bg-secondary">Already Applied</span>
+                                {% elif item.is_eligible %}
+                                    <a href="{% url 'placements:drive_detail' item.drive.id %}" class="btn btn-sm btn-success py-1 px-3">
+                                        Apply Now
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'placements:drive_detail' item.drive.id %}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                                        View Details
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No active placement drives currently open.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Provision User Account{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-custom p-4">
+            <div class="d-flex align-items-center mb-3">
+                <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary btn-sm me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="h5 fw-bold mb-0">Provision New Institutional Account</h2>
+            </div>
+            <p class="text-muted small mb-4">Administratively assign RBAC role and set initial credentials.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text small">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for err in field.errors %}
+                            <div class="text-danger small mt-1">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-nfsu-primary py-2">
+                        <i class="bi bi-person-check-fill me-1"></i> Create User Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

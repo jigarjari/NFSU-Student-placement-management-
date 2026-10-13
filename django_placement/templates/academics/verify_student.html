@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Academic Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-custom p-4">
+            <div class="d-flex align-items-center mb-3">
+                <a href="{% url 'academics:student_records' %}" class="btn btn-outline-secondary btn-sm me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="h5 fw-bold mb-0">Academic Record Verification</h2>
+            </div>
+            <p class="text-muted small mb-4">Validate student credentials against institutional registers.</p>
+
+            <div class="bg-light p-3 rounded mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Student Name:</span>
+                    <strong>{{ record.user.get_full_name|default:record.user.username }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Enrollment Number:</span>
+                    <strong class="font-monospace">{{ record.enrollment_number }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Programme:</span>
+                    <span>{{ record.course.code }} — {{ record.course.name }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Reported CGPA:</span>
+                    <strong class="text-primary fs-5">{{ record.cgpa }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Active Backlogs:</span>
+                    <strong class="{% if record.active_backlogs > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ record.active_backlogs }}
+                    </strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted small">Graduation Year:</span>
+                    <span>{{ record.graduation_year }}</span>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Coordinator Verification Notes</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Add remarks or justification...">{{ record.verification_notes }}</textarea>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <button type="submit" name="action" value="approve" class="btn btn-success w-100 py-2 fw-semibold">
+                            <i class="bi bi-patch-check-fill me-1"></i> Verify Record
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button type="submit" name="action" value="reject" class="btn btn-outline-danger w-100 py-2">
+                            <i class="bi bi-x-circle me-1"></i> Reject
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

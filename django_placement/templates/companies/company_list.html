@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Corporate Partners{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-buildings text-primary me-2"></i>Corporate Partners Directory</h2>
+        <p class="text-muted small mb-0">Registered Enterprises, Recruitment Affiliates, and Industry Partnerships</p>
+    </div>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Company Name</th>
+                        <th>Industry Sector</th>
+                        <th>HQ Location</th>
+                        <th>Verification Status</th>
+                        <th>Active Drives</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in companies %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ c.name }}</div>
+                                <div class="text-muted small">{{ c.email }}</div>
+                            </td>
+                            <td>{{ c.industry }}</td>
+                            <td>{{ c.headquarters_city }}</td>
+                            <td>
+                                {% if c.approval_status == 'APPROVED' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-patch-check-fill me-1"></i> Approved
+                                    </span>
+                                {% elif c.approval_status == 'REJECTED' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                        <i class="bi bi-clock me-1"></i> Pending Review
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ c.drives.count }}</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{% url 'companies:company_detail' c.id %}" class="btn btn-outline-primary btn-sm">
+                                    View Profile &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No corporate partner records found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

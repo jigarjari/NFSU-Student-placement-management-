@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ company.name }} - Corporate Profile{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'companies:company_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Directory
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h2 class="h3 fw-bold mb-1 text-dark">{{ company.name }}</h2>
+                    <div class="text-muted small">
+                        <i class="bi bi-tag-fill me-1"></i> {{ company.industry }} • <i class="bi bi-geo-alt-fill me-1"></i> {{ company.headquarters_city }}
+                    </div>
+                </div>
+                <div>
+                    {% if company.approval_status == 'APPROVED' %}
+                        <span class="badge bg-success px-3 py-2">Approved Partner</span>
+                    {% elif company.approval_status == 'REJECTED' %}
+                        <span class="badge bg-danger px-3 py-2">Registration Rejected</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark px-3 py-2">Pending Approval</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr>
+
+            <h4 class="h6 fw-bold text-uppercase text-muted mb-2">Corporate Profile Overview</h4>
+            <p class="text-dark">{{ company.description|default:"No institutional description provided." }}</p>
+
+            <div class="row g-3 mt-2">
+                <div class="col-12 col-md-6">
+                    <div class="p-3 bg-light rounded">
+                        <div class="text-muted small">Official Website</div>
+                        <a href="{{ company.website }}" target="_blank" class="fw-semibold text-break">{{ company.website|default:"Not specified" }}</a>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="p-3 bg-light rounded">
+                        <div class="text-muted small">Contact Email</div>
+                        <span class="fw-semibold">{{ company.email }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Associated Drives List -->
+        <div class="card card-custom">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h3 class="h6 fw-bold mb-0">Recruitment Drives by {{ company.name }}</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Job Role</th>
+                                <th>Category / Tier</th>
+                                <th>Package (CTC)</th>
+                                <th>Status</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in drives %}
+                                <tr>
+                                    <td class="ps-3 fw-bold">{{ d.job_title }}</td>
+                                    <td><span class="badge bg-secondary">{{ d.get_category_display }}</span></td>
+                                    <td>₹{{ d.ctc_lpa }} LPA</td>
+                                    <td><span class="badge bg-light text-dark border">{{ d.get_status_display }}</span></td>
+                                    <td class="text-end pe-3">
+                                        <a href="{% url 'placements:drive_detail' d.id %}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                                            Details &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3 text-muted">No recruitment drives posted yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Officer Approval Action Box -->
+    <div class="col-12 col-lg-4">
+        {% if user_role in 'ADMIN,OFFICER' %}
+            <div class="card card-custom p-4">
+                <h4 class="h6 fw-bold mb-3">Placement Officer Verification</h4>
+                {% if company.approval_status == 'PENDING' %}
+                    <form method="post" action="{% url 'companies:approve_company' company.id %}">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Approve Corporate Registration
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#rejectReason">
+                                <i class="bi bi-x-circle me-1"></i> Reject Registration
+                            </button>
+                        </div>
+                        <div class="collapse mt-3" id="rejectReason">
+                            <label class="form-label small fw-semibold">Rejection Explanation</label>
+                            <textarea name="reason" class="form-control mb-2" rows="2" placeholder="Explain verification issue..."></textarea>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm w-100">
+                                Confirm Rejection
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-secondary py-2 small mb-0">
+                        Status: <strong>{{ company.get_approval_status_display }}</strong>
+                        {% if company.approved_by %}
+                            <div class="text-muted small">Reviewed by {{ company.approved_by.username }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

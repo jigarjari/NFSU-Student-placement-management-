@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load placement_tags %}
+
+{% block title %}Placement Drives{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-briefcase-fill text-primary me-2"></i>Campus Placement Drives</h2>
+        <p class="text-muted small mb-0">Explore opportunities, evaluate policy compliance, and submit applications</p>
+    </div>
+    {% if user_role in 'ADMIN,OFFICER,RECRUITER' %}
+        <a href="{% url 'placements:create_drive' %}" class="btn btn-nfsu-primary">
+            <i class="bi bi-plus-circle me-1"></i> Post New Drive
+        </a>
+    {% endif %}
+</div>
+
+<!-- Category Filters -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a href="{% url 'placements:drive_list' %}" class="btn btn-sm {% if not selected_category %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        All Tiers
+    </a>
+    <a href="{% url 'placements:drive_list' %}?category=A_PLUS" class="btn btn-sm {% if selected_category == 'A_PLUS' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+        Tier A+ (≥ ₹16 LPA)
+    </a>
+    <a href="{% url 'placements:drive_list' %}?category=A" class="btn btn-sm {% if selected_category == 'A' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        Tier A (₹10–16 LPA)
+    </a>
+    <a href="{% url 'placements:drive_list' %}?category=B" class="btn btn-sm {% if selected_category == 'B' %}btn-info{% else %}btn-outline-info{% endif %}">
+        Tier B (₹6–10 LPA)
+    </a>
+</div>
+
+<!-- Drives Directory -->
+<div class="row g-4">
+    {% for drive in drives %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card card-custom h-100 d-flex flex-column">
+                <div class="card-body p-4 flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge {% if drive.category == 'A_PLUS' %}bg-danger{% elif drive.category == 'A' %}bg-primary{% elif drive.category == 'B' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                            {{ drive.get_category_display }}
+                        </span>
+                        <span class="badge bg-light text-muted border">
+                            {{ drive.get_offer_type_display }}
+                        </span>
+                    </div>
+
+                    <h3 class="h5 fw-bold mb-1 text-dark">{{ drive.job_title }}</h3>
+                    <div class="text-primary fw-semibold mb-3">
+                        <i class="bi bi-building"></i> {{ drive.company.name }}
+                    </div>
+
+                    <div class="bg-light p-3 rounded mb-3 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Package (CTC):</span>
+                            <strong>₹{{ drive.ctc_lpa }} LPA</strong>
+                        </div>
+                        {% if drive.stipend_monthly > 0 %}
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Monthly Stipend:</span>
+                                <strong>₹{{ drive.stipend_monthly }}</strong>
+                            </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Min. CGPA:</span>
+                            <span>{{ drive.min_cgpa }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Max Backlogs:</span>
+                            <span>{{ drive.max_active_backlogs }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Student Policy Eligibility Breakdown -->
+                    {% if user_role == 'STUDENT' %}
+                        {% with eval=student_evaluations|dict_get:drive.id %}
+                            {% if eval %}
+                                <div class="mb-3">
+                                    {% if eval.is_eligible %}
+                                        <div class="alert alert-success py-1 px-2 small mb-0 d-flex align-items-center">
+                                            <i class="bi bi-check-circle-fill me-1"></i> You are eligible to apply.
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-danger py-1 px-2 small mb-0">
+                                            <i class="bi bi-x-circle-fill me-1"></i> Ineligible: {{ eval.reason }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+
+                    <div class="text-muted small">
+                        <i class="bi bi-calendar-event me-1"></i> Drive Date: {{ drive.drive_date|date:"M d, Y" }}
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+                    <span class="badge {% if drive.is_expired %}bg-secondary{% elif drive.status == 'PUBLISHED' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {% if drive.is_expired %}Closed{% else %}{{ drive.get_status_display }}{% endif %}
+                    </span>
+                    <a href="{% url 'placements:drive_detail' drive.id %}" class="btn btn-outline-primary btn-sm">
+                        View Details &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-folder2-open display-4 text-muted d-block mb-3"></i>
+            <h3 class="h5 text-muted">No placement drives found in this category.</h3>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

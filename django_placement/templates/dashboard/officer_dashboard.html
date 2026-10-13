@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Placement Officer Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-person-badge-fill text-purple me-2" style="color: #7c3aed;"></i>Placement Officer Console</h2>
+        <p class="text-muted small mb-0">Corporate Engagements, Placement Drives Authorization, and Campus Results</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'placements:create_drive' %}" class="btn btn-nfsu-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i> Launch Placement Drive
+        </a>
+        <a href="{% url 'dashboard:reports' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Placement Reports
+        </a>
+    </div>
+</div>
+
+<!-- Approvals Queue Alert If Needed -->
+{% if pending_companies or pending_drives %}
+    <div class="alert alert-warning shadow-sm mb-4">
+        <h3 class="alert-heading h6 fw-bold mb-2"><i class="bi bi-clock-history me-1"></i> Pending Verifications & Approvals</h3>
+        <div class="d-flex flex-wrap gap-4 small">
+            <div><strong>{{ pending_companies.count }}</strong> Company Registrations awaiting review.</div>
+            <div><strong>{{ pending_drives.count }}</strong> Placement Drive proposals awaiting publication.</div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4" style="border-left-color: #7c3aed !important;">
+            <div class="text-muted small fw-semibold text-uppercase">Active Drives</div>
+            <div class="fs-3 fw-bold text-dark mt-1">{{ active_drives.count }}</div>
+            <div class="text-muted small mt-1">Accepting student applications</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Total Applications</div>
+            <div class="fs-3 fw-bold text-dark mt-1">{{ total_applications }}</div>
+            <div class="text-muted small mt-1">Across all active recruitment cycles</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Offers Accepted</div>
+            <div class="fs-3 fw-bold text-success mt-1">{{ accepted_offers }}</div>
+            <div class="text-muted small mt-1">Out of {{ total_offers }} total offers issued</div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Pending Approvals</div>
+            <div class="fs-3 fw-bold text-warning mt-1">{{ pending_companies.count|add:pending_drives.count }}</div>
+            <div class="text-muted small mt-1">Companies and Drives in queue</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Pending Company Registrations -->
+    <div class="col-12 col-lg-6">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h3 class="h6 fw-bold mb-0">Pending Company Registrations ({{ pending_companies.count }})</h3>
+                <a href="{% url 'companies:company_list' %}" class="small text-decoration-none">View All &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Company</th>
+                                <th>Industry / Location</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in pending_companies %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <strong>{{ c.name }}</strong>
+                                        <div class="text-muted small">{{ c.email }}</div>
+                                    </td>
+                                    <td>{{ c.industry }} <span class="text-muted">• {{ c.headquarters_city }}</span></td>
+                                    <td class="text-end pe-3">
+                                        <form method="post" action="{% url 'companies:verify_company' c.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-success py-1 px-2">
+                                                <i class="bi bi-check-lg"></i> Approve
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-3 text-muted">No pending company registrations.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Drive Proposals -->
+    <div class="col-12 col-lg-6">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h3 class="h6 fw-bold mb-0">Pending Placement Drive Proposals ({{ pending_drives.count }})</h3>
+                <a href="{% url 'placements:drive_list' %}" class="small text-decoration-none">All Drives &rarr;</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Drive / Company</th>
+                                <th>CTC</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in pending_drives %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <strong>{{ d.job_title }}</strong>
+                                        <div class="text-muted small">{{ d.company.name }}</div>
+                                    </td>
+                                    <td>₹{{ d.ctc_lpa }} LPA</td>
+                                    <td class="text-end pe-3">
+                                        <a href="{% url 'placements:drive_detail' d.id %}" class="btn btn-sm btn-outline-primary py-1 px-2">
+                                            Review & Publish
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-3 text-muted">No pending drive proposals.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

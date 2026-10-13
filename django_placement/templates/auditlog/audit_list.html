@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Security Audit Trail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-shield-shaded text-danger me-2"></i>Security Audit & Governance Trail</h2>
+        <p class="text-muted small mb-0">Immutable Cryptographic SHA-256 Hash-Chained Security Event Log</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="?verify=1" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-shield-check me-1"></i> Verify Cryptographic Chain
+        </a>
+        {% if is_admin %}
+            <a href="?export=csv" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Audit CSV
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Cryptographic Verification Result Banner If Triggered -->
+{% if integrity_result %}
+    <div class="card card-custom p-3 mb-4 {% if integrity_result.valid %}border-success bg-success-subtle{% else %}border-danger bg-danger-subtle{% endif %}">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                {% if integrity_result.valid %}
+                    <i class="bi bi-patch-check-fill text-success fs-2"></i>
+                    <div>
+                        <h3 class="h6 fw-bold mb-0 text-success">Cryptographic Integrity Verified (100% Tamper-Free)</h3>
+                        <p class="small mb-0 text-muted">All {{ integrity_result.total }} audit records sequentially validated against SHA-256 blockchain anchors.</p>
+                    </div>
+                {% else %}
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-2"></i>
+                    <div>
+                        <h3 class="h6 fw-bold mb-0 text-danger">Integrity Anomaly Detected</h3>
+                        <p class="small mb-0 text-danger">{{ integrity_result.reason }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            <span class="badge {% if integrity_result.valid %}bg-success{% else %}bg-danger{% endif %} px-3 py-2">
+                {{ integrity_result.total }} Records Validated
+            </span>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Search & Filters -->
+<div class="card card-custom p-3 mb-4 bg-light">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Search actor, action, details..." value="{{ search_q|default:'' }}">
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="outcome" class="form-select form-select-sm">
+                <option value="">All Outcomes</option>
+                <option value="SUCCESS" {% if outcome_filter == 'SUCCESS' %}selected{% endif %}>SUCCESS</option>
+                <option value="BLOCKED" {% if outcome_filter == 'BLOCKED' %}selected{% endif %}>BLOCKED (Security Denials)</option>
+                <option value="FAILURE" {% if outcome_filter == 'FAILURE' %}selected{% endif %}>FAILURE</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="role" class="form-select form-select-sm">
+                <option value="">All Roles</option>
+                <option value="ADMIN" {% if role_filter == 'ADMIN' %}selected{% endif %}>ADMIN</option>
+                <option value="OFFICER" {% if role_filter == 'OFFICER' %}selected{% endif %}>OFFICER</option>
+                <option value="COORDINATOR" {% if role_filter == 'COORDINATOR' %}selected{% endif %}>COORDINATOR</option>
+                <option value="RECRUITER" {% if role_filter == 'RECRUITER' %}selected{% endif %}>RECRUITER</option>
+                <option value="STUDENT" {% if role_filter == 'STUDENT' %}selected{% endif %}>STUDENT</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Filter Log</button>
+        </div>
+    </form>
+</div>
+
+<!-- Audit Trail Table -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-monospace small">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Timestamp</th>
+                        <th>Actor</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Outcome</th>
+                        <th>Details</th>
+                        <th class="pe-3">Hash Anchor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in logs %}
+                        <tr>
+                            <td class="ps-3 text-muted text-nowrap">{{ item.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                <span class="badge badge-role-{{ item.actor_role|lower }}">{{ item.actor_username }}</span>
+                            </td>
+                            <td><strong>{{ item.action }}</strong></td>
+                            <td class="text-muted">{{ item.target_model }}:{{ item.target_id|default:"-" }}</td>
+                            <td>
+                                {% if item.outcome == 'SUCCESS' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">SUCCESS</span>
+                                {% elif item.outcome == 'BLOCKED' %}
+                                    <span class="badge bg-danger">BLOCKED</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ item.outcome }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-break" style="max-width: 320px;">
+                                {{ item.details }}
+                            </td>
+                            <td class="pe-3 text-muted" title="{{ item.current_hash }}">
+                                <code>{{ item.current_hash|slice:":10" }}...</code>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">No security events match the current filter criteria.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}My Placement Applications{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1"><i class="bi bi-send-check-fill text-primary me-2"></i>My Placement Applications</h2>
+        <p class="text-muted small mb-0">Track application stages, interview schedules, and offer letters</p>
+    </div>
+    <a href="{% url 'placements:drive_list' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-search me-1"></i> Explore More Drives
+    </a>
+</div>
+
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Company & Job Role</th>
+                        <th>CTC / Package</th>
+                        <th>Applied On</th>
+                        <th>Application Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ app.drive.job_title }}</div>
+                                <div class="text-muted small">{{ app.drive.company.name }} • {{ app.drive.get_offer_type_display }}</div>
+                            </td>
+                            <td>
+                                <strong>₹{{ app.drive.ctc_lpa }} LPA</strong>
+                            </td>
+                            <td class="text-muted small">
+                                {{ app.applied_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td>
+                                {% if app.status == 'OFFERED' %}
+                                    <span class="badge bg-warning text-dark border border-warning px-2 py-1">
+                                        <i class="bi bi-award-fill me-1"></i> Offer Received
+                                    </span>
+                                {% elif app.status == 'OFFER_ACCEPTED' %}
+                                    <span class="badge bg-success px-2 py-1">
+                                        <i class="bi bi-check-all me-1"></i> Offer Accepted
+                                    </span>
+                                {% elif app.status == 'OFFER_REJECTED' %}
+                                    <span class="badge bg-secondary px-2 py-1">Declined</span>
+                                {% elif app.status == 'SHORTLISTED' %}
+                                    <span class="badge bg-info text-dark px-2 py-1">Shortlisted</span>
+                                {% elif app.status == 'INTERVIEW_SCHEDULED' %}
+                                    <span class="badge bg-primary px-2 py-1">Interview Scheduled</span>
+                                {% elif app.status == 'REJECTED' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Not Selected</span>
+                                {% elif app.status == 'WITHDRAWN' %}
+                                    <span class="badge bg-light text-muted border px-2 py-1">Withdrawn</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-dark border px-2 py-1">{{ app.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if app.offer and app.status == 'OFFERED' %}
+                                    <a href="{% url 'applications:respond_offer' app.offer.id %}" class="btn btn-warning btn-sm fw-bold">
+                                        <i class="bi bi-clock-history me-1"></i> Respond to Offer
+                                    </a>
+                                {% elif app.status in 'APPLIED,UNDER_REVIEW' %}
+                                    <form method="post" action="{% url 'applications:withdraw_application' app.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Withdraw application for {{ app.drive.job_title }}?')">
+                                            Withdraw
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <a href="{% url 'placements:drive_detail' app.drive.id %}" class="btn btn-outline-secondary btn-sm">
+                                        Details
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                                You have not submitted any placement applications yet.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
