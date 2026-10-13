@@ -1,0 +1,468 @@
+# Project Development Prompt: Secure, Policy-Driven NFSU Student Placement Management System
+
+## 1. Project Overview
+
+Act as a senior full-stack developer, Django security engineer, database architect, and UI/UX designer.
+
+Build a complete, secure, policy-driven **NFSU Student Placement Management System** for a coding event at the National Forensic Sciences University (NFSU).
+
+The system must digitize the placement process, enforce placement eligibility rules, protect student information, and provide separate dashboards and permissions for different users.
+
+**Development constraints:**
+- Time limit: 1 day.
+- Team size: Individual developer.
+- Backend: Python with Django.
+- Database: MySQL.
+- Frontend: HTML5, CSS3, Bootstrap 5, and JavaScript.
+- Authentication: Django authentication system.
+- Authorization: Backend-enforced Role-Based Access Control (RBAC).
+- Development environment: Windows 11, VS Code, Python virtual environment, and MySQL/XAMPP if compatible.
+- Target: A working, demonstrable application with realistic sample data.
+
+Prioritize a functional, secure MVP over unnecessary complexity. Do not use React or microservices.
+
+## 2. Mandatory User Roles
+
+Implement exactly these five application roles:
+
+### Role 1: Admin
+Responsibilities:
+- Create, update, deactivate, and manage user accounts.
+- Assign roles and manage user permissions.
+- Manage courses, departments, and academic programmes.
+- Configure placement policies and eligibility criteria.
+- Approve and monitor company registrations.
+- Access system-wide placement statistics and reports.
+- View security audit logs.
+- Manage system settings.
+
+Restrictions:
+- Only authorized administrators can create or assign privileged roles.
+- Prevent unauthorized privilege escalation.
+- Protect critical operations with appropriate validation and audit logging.
+
+### Role 2: Placement Officer
+Responsibilities:
+- Manage registered companies and recruiters.
+- Create, edit, publish, and close placement drives.
+- Configure or apply placement eligibility criteria.
+- Review student applications.
+- Monitor applications, shortlists, offers, and final results.
+- Generate placement reports.
+- Review authorized audit information where explicitly permitted.
+
+Restrictions:
+- Cannot create administrators or assign privileged system roles.
+- Cannot modify system-wide security settings.
+- Must follow configured placement policies.
+
+### Role 3: Course Coordinator
+Responsibilities:
+- View students belonging to assigned courses.
+- Verify student academic details.
+- Review placement eligibility.
+- Monitor placement applications and outcomes.
+- Generate reports for assigned courses.
+
+Restrictions:
+- Access only explicitly assigned courses and their associated students.
+- Cannot modify users' roles, global policies, or other coordinators' assignments.
+- Cannot access unrelated courses or unrestricted student records.
+
+### Role 4: Recruiter / Company Representative
+Responsibilities:
+- Manage their own company profile.
+- Submit job descriptions and placement-drive requests.
+- Specify job roles, required skills, salary or CTC, location, and eligibility requirements.
+- View eligible applicants for authorized company drives.
+- Shortlist and reject applicants.
+- Update interview stages and recruitment outcomes.
+- Submit offer details through authorized workflows.
+
+Restrictions:
+- Access only their own company and explicitly authorized placement drives.
+- Cannot view unrelated students or companies.
+- Cannot change verified academic records or global eligibility policies.
+- Cannot approve their own company registration if independent approval is required.
+- Cannot directly alter final placement records outside authorized workflows.
+
+### Role 5: Student
+Responsibilities:
+- Register or sign in securely.
+- View and update permitted profile fields.
+- Maintain academic information, skills, résumé, and contact details.
+- View available placement drives.
+- Check eligibility and the reasons for eligibility or ineligibility.
+- Apply for eligible placement drives.
+- Track application and interview status.
+- View offers and final placement outcomes.
+- Withdraw an application when permitted by policy.
+
+Restrictions:
+- Access only their own profile, applications, résumé, and offers.
+- Cannot modify verified academic information or their own placement results.
+- Cannot bypass eligibility requirements.
+- Cannot submit duplicate applications for the same drive.
+
+## 3. Mandatory Permission Matrix
+
+Implement the following permission rules in the Django backend.
+
+| Feature | Admin | Placement Officer | Coordinator | Recruiter | Student |
+|---|---|---|---|---|---|
+| Manage users and roles | Full | No | No | No | No |
+| Manage global policies | Full | Manage within authorization | View | No | No |
+| Manage companies | Full | Manage | View | Own company | No |
+| Create placement drives | Full | Yes | No | Submit requests | No |
+| Verify student details | Full | Yes | Assigned students | No | Own permitted fields |
+| View eligible students | Authorized | Yes | Assigned courses | Authorized applicants | Own eligibility |
+| Apply for placements | No | No | No | No | Yes |
+| Shortlist candidates | No | Yes | No | Own authorized drives | No |
+| Update offers/results | Full | Yes | View | Own authorized drives | View own results |
+| View reports | All | Placement reports | Assigned courses | Own drives | Own applications |
+| View audit logs | Full | Limited, if authorized | No | No | No |
+
+Apply the principle of least privilege. Every permission must be checked server-side for every relevant request.
+
+## 4. Technology and Architecture
+
+Use a maintainable Django monolithic architecture.
+
+Suggested Django apps:
+
+- `accounts` — authentication, profiles, role assignment.
+- `academics` — courses, departments, student academic records.
+- `companies` — company profiles and recruiter membership.
+- `placements` — placement drives, policies, eligibility evaluation.
+- `applications` — applications, shortlisting, interviews, offers.
+- `auditlog` — security events and audit records.
+- `dashboard` — role-specific dashboards and reports.
+
+Use Django templates with Bootstrap 5 for a responsive interface.
+
+Use Django ORM and MySQL for persistent data storage. Keep database credentials in environment variables loaded from a `.env` file, and provide a `.env.example` containing placeholders only.
+
+## 5. Database Design
+
+Create Django models and migrations for the following entities:
+
+1. User — authentication identity and active status.
+2. UserProfile — application role and permitted profile information.
+3. Department — academic department.
+4. Course — academic programme and assigned coordinator.
+5. StudentAcademicRecord — verified CGPA, backlog count, graduation year, and academic status.
+6. Company — company details and approval status.
+7. RecruiterMembership — association between recruiters and authorized companies.
+8. PlacementPolicy — approved eligibility criteria and policy version.
+9. PlacementDrive — company, job description, deadlines, job requirements, and status.
+10. DriveAuthorization — explicit authorization for company recruiters to manage drives.
+11. Application — student, drive, timestamp, and current status.
+12. Interview — interview rounds, schedules, and outcomes.
+13. Offer — offer details and decision status.
+14. AuditLog — actor, action, target, timestamp, outcome, and relevant metadata.
+
+Requirements:
+- Define foreign keys, uniqueness constraints, indexes, and appropriate deletion behavior.
+- Prevent duplicate applications using a database-level unique constraint on student and drive.
+- Use transactions for important multi-step updates.
+- Validate academic data and placement deadlines.
+- Store uploaded résumés securely and validate file types and sizes.
+- Never store plaintext passwords.
+- Do not store unnecessary sensitive information in audit logs.
+
+Use Django's built-in user model with a carefully implemented role/profile model, or a custom user model if justified. If using a custom user model, define it before the initial migrations.
+
+## 6. Secure Authentication and RBAC
+
+Implement the following:
+
+- Secure login and logout.
+- Password hashing through Django's authentication framework.
+- Password validation.
+- Session-based authentication.
+- CSRF protection on state-changing requests.
+- Login throttling or rate limiting.
+- Secure session and cookie settings appropriate to the deployment environment.
+- Server-side authorization decorators, mixins, permission checks, and queryset filtering.
+- Safe handling of unauthorized and forbidden requests.
+- Protection against IDOR (Insecure Direct Object Reference).
+- Input validation and output escaping.
+- ORM-based queries to reduce SQL injection risk.
+- Protection against mass assignment and privilege escalation.
+- Secure file upload validation.
+- Security event logging.
+
+Do not rely on frontend button visibility to enforce authorization.
+
+Examples of required checks:
+- A student requesting another student's application must receive a denial.
+- A recruiter must not access another company's drives by changing a URL ID.
+- A coordinator must not view students from an unassigned course.
+- A placement officer must not assign themselves the Admin role.
+- An unauthorized user must not access administrative endpoints directly.
+
+Return an appropriate 403 response for forbidden access and 404 where resource concealment is appropriate.
+
+## 7. Policy-Driven Placement Eligibility Engine
+
+Create a centralized eligibility service. Do not duplicate eligibility logic across views or templates.
+
+Support configurable criteria such as:
+- Minimum CGPA.
+- Maximum active or historical backlogs, as defined by policy.
+- Eligible courses and departments.
+- Graduation year.
+- Required skills.
+- Application deadline.
+- Student verification status.
+- Drive-specific requirements.
+
+The engine must:
+1. Load the approved policy and student academic record.
+2. Evaluate each applicable criterion.
+3. Return an eligibility result and understandable reasons.
+4. Re-evaluate eligibility when applying.
+5. Validate all criteria on the server, regardless of what the frontend displays.
+6. Record the applicable policy version for traceability.
+7. Prevent applications after the deadline.
+8. Prevent duplicate applications.
+9. Avoid exposing private student information to unauthorized recruiters.
+
+Make the rules configurable instead of hardcoding a single CGPA threshold for every company.
+
+Clearly distinguish policy eligibility from recruiter shortlisting and final selection.
+
+## 8. Required Application Workflows
+
+### Student workflow
+Login → Complete profile → Verify academic details → Browse drives → Check eligibility → Apply → Track application → View interview status → View offer/result.
+
+### Recruiter workflow
+Login → Manage company profile → Submit drive request → Receive authorization/approval → View eligible applicants → Shortlist → Update recruitment stages → Submit offers/results.
+
+### Placement Officer workflow
+Login → Review company → Approve company → Review drive request → Approve and publish drive → Monitor applications → Validate outcomes → Generate reports.
+
+### Course Coordinator workflow
+Login → View assigned courses → Review assigned students → Verify academic details → Monitor eligibility and placement progress → Generate course report.
+
+### Admin workflow
+Login → Manage accounts and roles → Configure academic structure and policies → Monitor operations → Review audit logs → Generate system reports.
+
+Use explicit status transitions and validate who can perform each transition.
+
+Suggested application statuses:
+- Applied
+- Under Review
+- Shortlisted
+- Interview Scheduled
+- Selected
+- Offered
+- Offer Accepted
+- Offer Rejected
+- Rejected
+- Withdrawn
+
+Keep the application's status model consistent across the backend, frontend, reports, and tests.
+
+## 9. Dashboards and User Interface
+
+Create separate dashboards for all five roles.
+
+### Admin dashboard
+- Total users by role.
+- Total courses and companies.
+- Active placement drives.
+- Total applications and offers.
+- Security audit activity.
+
+### Placement Officer dashboard
+- Pending company approvals.
+- Pending drive approvals.
+- Active placement drives.
+- Applications by status.
+- Offers and placement statistics.
+
+### Course Coordinator dashboard
+- Assigned courses.
+- Number of students.
+- Verified and unverified records.
+- Eligible students.
+- Application and placement progress.
+
+### Recruiter dashboard
+- Company profile status.
+- Authorized drives.
+- Eligible applicants.
+- Shortlisted students.
+- Interview results and offers.
+
+### Student dashboard
+- Profile completion.
+- Available drives.
+- Eligible and ineligible opportunities.
+- My applications.
+- Upcoming interviews.
+- Offers and results.
+
+Design a professional university-style interface with responsive navigation, tables, filters, status badges, validation messages, empty states, and confirmation prompts for sensitive actions.
+
+Never expose unauthorized data through dashboard counts, search results, downloadable reports, or API responses.
+
+## 10. Audit Logging
+
+Record security-relevant events, including:
+- Successful and failed login attempts.
+- Account creation, deactivation, and role changes.
+- Changes to placement policies.
+- Company and drive approvals.
+- Academic record verification and modifications.
+- Application status transitions.
+- Offer and final result changes.
+- Unauthorized access attempts where appropriate.
+
+Audit records should include the acting user, event type, timestamp, target object, outcome, and minimal relevant metadata.
+
+Protect audit records from ordinary modification and deletion. Restrict access to authorized personnel and avoid logging passwords, session tokens, or unnecessary personal data.
+
+Explain the limitations of database-backed audit logs and how stronger tamper resistance could be added in a production system.
+
+## 11. Reports
+
+Implement practical reports for:
+- Total registered students.
+- Eligible students by course.
+- Company-wise applications.
+- Drive-wise shortlisting and selection.
+- Offer and placement statistics.
+- Student application history.
+- Course-wise placement progress.
+
+Filter every report according to the current user's permissions. Provide CSV export only where authorized.
+
+## 12. Required Project Deliverables
+
+Generate a complete working project, including:
+
+1. Project folder structure.
+2. `requirements.txt`.
+3. Django settings and URL configuration.
+4. All Django models.
+5. Database migrations.
+6. Forms, views, services, decorators, mixins, and permission checks.
+7. HTML templates and static CSS/JavaScript files.
+8. MySQL configuration.
+9. Environment-variable configuration and `.env.example`.
+10. Management command or safe setup process for creating the first administrator.
+11. Sample data for all five roles, courses, companies, policies, drives, and applications.
+12. Automated tests for authentication, authorization, eligibility, and application workflows.
+13. README with installation and execution instructions.
+14. Security testing checklist.
+15. Final demonstration script.
+
+Provide complete code for every required file. Do not use placeholders such as “implement this later,” omit critical code, or provide pseudocode where executable code is required.
+
+Use a manageable number of dependencies. Explain any optional features that cannot reasonably be completed within the one-day deadline.
+
+## 13. Testing Requirements
+
+Write automated Django tests covering at least the following:
+
+- Valid and invalid login.
+- Anonymous access to protected pages.
+- Unauthorized access to the Admin dashboard.
+- Role escalation attempts.
+- Student accessing another student's application.
+- Recruiter accessing another company's data.
+- Recruiter accessing an unauthorized drive.
+- Coordinator accessing an unassigned course.
+- Duplicate application prevention.
+- Ineligible student application rejection.
+- Application after deadline rejection.
+- Valid application submission.
+- Unauthorized result modification.
+- Policy change authorization.
+- Audit logging for critical actions.
+- SQL injection-resistant ORM usage and input validation.
+- File upload type and size validation.
+
+Use Django's test framework and a separate test database. Do not run destructive tests against real student records.
+
+Provide the commands to run the tests and explain the expected results.
+
+## 14. One-Day Implementation Plan
+
+Follow this order:
+
+**Phase 1 — Foundation**
+- Create the Django project and virtual environment.
+- Configure MySQL.
+- Create applications, models, migrations, and administrator setup.
+
+**Phase 2 — Security**
+- Implement authentication, five roles, RBAC, object-level permissions, and secure settings.
+- Test access restrictions before implementing advanced features.
+
+**Phase 3 — Core placement functionality**
+- Implement companies, courses, policies, drives, eligibility evaluation, applications, and status transitions.
+
+**Phase 4 — Dashboards and reporting**
+- Create all five dashboards.
+- Add search, filtering, status updates, and basic reports.
+
+**Phase 5 — Testing and demonstration**
+- Seed realistic demo data.
+- Run migrations and automated tests.
+- Fix critical bugs.
+- Prepare the final presentation and security demonstration.
+
+Prioritize a functioning, secure end-to-end workflow. Do not spend the first half of the day on visual styling.
+
+## 15. Final Demonstration Scenario
+
+Prepare a repeatable demonstration using fictional student and company data.
+
+Demonstrate:
+
+1. Admin creates a user and assigns the Student role.
+2. Placement Officer approves a fictional company and publishes a placement drive.
+3. A student with CGPA 8.0 passes a policy requiring minimum CGPA 7.0, assuming all other criteria are satisfied.
+4. A student with CGPA 6.0 is denied eligibility under the same policy, with an understandable reason.
+5. The eligible student applies successfully.
+6. The system blocks a duplicate application.
+7. The recruiter views authorized applicants and shortlists the eligible student.
+8. The Course Coordinator views only students in assigned courses.
+9. The Placement Officer updates recruitment results and generates a report.
+10. The Admin reviews audit events.
+11. Demonstrate a student attempting to access another student's application and a recruiter attempting to access another company's drive; both attempts must fail.
+
+Use fictional data only. Do not use real student credentials or personal information.
+
+## 16. Expected Final Output
+
+Begin by presenting:
+1. The proposed architecture.
+2. The project folder structure.
+3. The database relationship design.
+4. The role-permission matrix.
+5. The one-day implementation sequence.
+
+Then implement the project step by step, providing complete files and exact Windows PowerShell commands.
+
+For each phase, explain:
+- Which files to create.
+- Where each file belongs.
+- The complete code.
+- The command to execute.
+- The expected output.
+- How to verify that the feature works.
+
+Finish with:
+- A working end-to-end application.
+- Database setup and sample data instructions.
+- Automated test results.
+- A security verification checklist.
+- A five-minute final demonstration script.
+- Known limitations and recommended production improvements.
+
+**Final acceptance criterion:** The application must work end to end, enforce all five roles through Django backend authorization, evaluate placement policies on the server, isolate company/course/student data correctly, maintain security audit records, and demonstrate both successful workflows and blocked unauthorized requests.
