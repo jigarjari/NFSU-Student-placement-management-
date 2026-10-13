@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db/database');
 const { authenticate } = require('./authMiddleware');
-const { evaluateEligibility } = require('../services/policyEngine');
+const { evaluateEligibility, computeIdBlockStatus } = require('../services/policyEngine');
 const { verifyAuditIntegrity } = require('../services/auditLogger');
 
 // GET /api/tests/run - Run complete automated Policy & Cybersecurity Test Suite
@@ -317,6 +317,41 @@ router.get('/run', authenticate, (req, res) => {
     'Masked (+91 98*** ***10)',
     maskedForStudent,
     'Verified: Personally identifiable contact information masked for non-administrative roles.'
+  );
+
+  // Test 17: Clause 3.2 Absenteeism ID Block Enforcement
+  const flaggedStudent = {
+    registration_status: 'Registered',
+    eligibility_status: 'Eligible',
+    absent_drives_penalty: 3
+  };
+  const flaggedStatus = computeIdBlockStatus(flaggedStudent);
+  recordTest(
+    'ID Block Policy',
+    'Clause 3.2 Absenteeism Student ID Block Enforcement',
+    'Disciplinary Sanctions',
+    flaggedStatus.isBlocked === true && flaggedStatus.badge === 'BLOCKED_ABSENTEEISM',
+    'BLOCKED_ABSENTEEISM (isBlocked: true)',
+    `${flaggedStatus.badge} (isBlocked: ${flaggedStatus.isBlocked})`,
+    flaggedStatus.reason
+  );
+
+  // Test 18: Category A+ (>= 16 LPA) Student ID Lock Enforcement
+  const aplusStudent = {
+    registration_status: 'Registered',
+    eligibility_status: 'Eligible',
+    current_category: 'A+',
+    absent_drives_penalty: 0
+  };
+  const aplusStatus = computeIdBlockStatus(aplusStudent);
+  recordTest(
+    'ID Block Policy',
+    'Category A+ Placement Student ID Lockout',
+    'Placement Termination',
+    aplusStatus.isBlocked === true && aplusStatus.badge === 'LOCKED_APLUS',
+    'LOCKED_APLUS (isBlocked: true)',
+    `${aplusStatus.badge} (isBlocked: ${aplusStatus.isBlocked})`,
+    aplusStatus.reason
   );
 
   const totalTests = results.length;

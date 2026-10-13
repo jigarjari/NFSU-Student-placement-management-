@@ -307,9 +307,100 @@ function evaluateEligibility(student, driveOrOffer, options = {}) {
   return result;
 }
 
+/**
+ * Computes institutional Student ID blocking status based on placement policy rules:
+ * - Deregistration from campus placements
+ * - Incomplete placement registration
+ * - Academic ineligibility or pending coordinator verification
+ * - Clause 3.2 Absenteeism penalty (3 drives ban)
+ * - Category A+ offer lock (>= 16 LPA out of placement process)
+ * - Internship + FTE (I+F) dual offer lock
+ */
+function computeIdBlockStatus(student) {
+  if (!student) {
+    return {
+      isBlocked: false,
+      badge: 'ACTIVE_ELIGIBLE',
+      label: '✅ Active & Eligible',
+      reason: 'Student profile verified and active in placement process.'
+    };
+  }
+
+  if (student.registration_status === 'Deregistered') {
+    return {
+      isBlocked: true,
+      badge: 'BLOCKED_DEREGISTERED',
+      label: '🚫 Blocked (Deregistered)',
+      reason: 'Student deregistered from campus placements under NFSU Policy.'
+    };
+  }
+
+  if (student.registration_status === 'Not registered') {
+    return {
+      isBlocked: true,
+      badge: 'BLOCKED_NOT_REGISTERED',
+      label: '🚫 Blocked (Not Registered)',
+      reason: 'Placement registration incomplete. Access to recruitment drives restricted.'
+    };
+  }
+
+  if (student.eligibility_status === 'Ineligible') {
+    return {
+      isBlocked: true,
+      badge: 'BLOCKED_INELIGIBLE',
+      label: '🚫 Blocked (Academic Ineligible)',
+      reason: 'Academic eligibility criteria not met (CGPA or academic backlogs).'
+    };
+  }
+
+  if (student.eligibility_status === 'Pending verification') {
+    return {
+      isBlocked: true,
+      badge: 'BLOCKED_PENDING',
+      label: '⚠️ Blocked (Verification Pending)',
+      reason: 'Department coordinator verification pending.'
+    };
+  }
+
+  if (student.absent_drives_penalty && student.absent_drives_penalty > 0) {
+    return {
+      isBlocked: true,
+      badge: 'BLOCKED_ABSENTEEISM',
+      label: `🚫 Blocked (${student.absent_drives_penalty} Drives Ban)`,
+      reason: `Absenteeism disciplinary penalty active under NFSU Clause 3.2.`
+    };
+  }
+
+  if (student.current_category === 'A+') {
+    return {
+      isBlocked: true,
+      badge: 'LOCKED_APLUS',
+      label: '🔒 Locked (Category A+ Placed)',
+      reason: 'Selected in Category A+ (>= 16 LPA). Out of placement process under Clause 3.2.'
+    };
+  }
+
+  if (student.current_offer_type === 'I+F' || student.placement_status === 'Internship + PPO/FTE') {
+    return {
+      isBlocked: true,
+      badge: 'LOCKED_IF',
+      label: '🔒 Locked (I+F Placed)',
+      reason: 'Holding dual Internship + FTE offer. Barred from further drives.'
+    };
+  }
+
+  return {
+    isBlocked: false,
+    badge: 'ACTIVE_ELIGIBLE',
+    label: '✅ Active & Eligible',
+    reason: 'Eligible for matching recruitment drives.'
+  };
+}
+
 module.exports = {
   determineCategory,
   evaluateEligibility,
+  computeIdBlockStatus,
   getPolicyConfig,
   updatePolicyConfig,
   DEFAULT_POLICY_CONFIG

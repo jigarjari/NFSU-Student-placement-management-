@@ -108,8 +108,12 @@ function sanitizeInputMiddleware(req, res, next) {
 function maskPhoneNumber(phone, viewerRole) {
   if (['admin', 'officer'].includes(viewerRole)) return phone;
   if (!phone) return 'N/A';
-  // Mask middle digits: +91 98*** **421
-  return phone.replace(/(\+?\d{2,3}[\s-]?)?(\d{2})\d{4,6}(\d{2,4})/, '$1$2*** ***$3');
+  const hasPlus = String(phone).trim().startsWith('+');
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length < 10) return '***-***-****';
+  const prefix = (hasPlus && digits.length > 10) ? `+${digits.slice(0, digits.length - 10)} ` : '';
+  const tenDigits = digits.slice(-10);
+  return `${prefix}${tenDigits.slice(0, 2)}*** ***${tenDigits.slice(-2)}`.trim();
 }
 
 function maskEmail(email, viewerRole) {

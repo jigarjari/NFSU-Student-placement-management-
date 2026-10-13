@@ -4,11 +4,13 @@ const Students = {
   async load() {
     const courseSelect = document.getElementById('student-course-select');
     const statusSelect = document.getElementById('student-status-select');
+    const blockSelect = document.getElementById('student-block-select');
     const searchInput = document.getElementById('student-search-input');
     const archivedCheck = document.getElementById('show-archived-checkbox');
 
     const course = courseSelect ? courseSelect.value : 'All';
     const status = statusSelect ? statusSelect.value : 'All';
+    const blockCondition = blockSelect ? blockSelect.value : 'All';
     const search = searchInput ? searchInput.value.trim() : '';
     const showArchived = archivedCheck ? archivedCheck.checked : false;
 
@@ -17,12 +19,27 @@ const Students = {
 
     try {
       const data = await API.get(url);
-      this.allStudents = data.students || [];
+      let list = data.students || [];
+
+      // Filter by ID Block Condition if selected
+      if (blockCondition === 'blocked') {
+        list = list.filter(s => s.id_block_status && s.id_block_status.isBlocked);
+      } else if (blockCondition === 'active') {
+        list = list.filter(s => !s.id_block_status || !s.id_block_status.isBlocked);
+      } else if (blockCondition === 'absent') {
+        list = list.filter(s => s.absent_drives_penalty > 0);
+      } else if (blockCondition === 'locked_aplus') {
+        list = list.filter(s => s.current_category === 'A+');
+      } else if (blockCondition === 'deregistered') {
+        list = list.filter(s => s.registration_status === 'Deregistered');
+      }
+
+      this.allStudents = list;
       this.renderTable(this.allStudents);
     } catch (err) {
       const tbody = document.getElementById('students-tbody');
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: var(--accent-rose); padding: 24px;">${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: var(--accent-rose); padding: 24px;">${err.message}</td></tr>`;
       }
     }
   },
@@ -32,7 +49,7 @@ const Students = {
     if (!tbody) return;
 
     if (students.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: var(--text-dim); padding: 24px;">No student records match the selected filter.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: var(--text-dim); padding: 24px;">No student records match the selected filter.</td></tr>`;
       return;
     }
 
@@ -48,6 +65,17 @@ const Students = {
         penaltyBadge = `<span class="badge badge-blocked" title="Excluded from drives">⚠️ ${s.absent_drives_penalty} Drives Ban</span>`;
       }
 
+      // ID Block Status formatted badge
+      let idBlockBadge = '<span class="badge badge-id-active">✅ Active</span>';
+      if (s.id_block_status) {
+        if (s.id_block_status.isBlocked) {
+          const badgeClass = (s.id_block_status.badge && s.id_block_status.badge.startsWith('LOCKED')) ? 'badge-id-locked' : 'badge-id-blocked';
+          idBlockBadge = `<span class="badge ${badgeClass}" title="${s.id_block_status.reason || ''}">${s.id_block_status.label}</span>`;
+        } else {
+          idBlockBadge = `<span class="badge badge-id-active" title="${s.id_block_status.reason || ''}">${s.id_block_status.label}</span>`;
+        }
+      }
+
       return `
         <tr>
           <td><code>${s.placement_id}</code></td>
@@ -58,6 +86,7 @@ const Students = {
           <td><span class="badge badge-neutral">${s.course}</span></td>
           <td><strong>${s.cgpa}</strong></td>
           <td><code style="color: var(--text-muted);">${s.mobile_number}</code></td>
+          <td>${idBlockBadge}</td>
           <td>
             <span class="badge ${s.registration_status === 'Registered' ? 'badge-allowed' : 'badge-blocked'}">
               ${s.registration_status}
@@ -76,10 +105,6 @@ const Students = {
           <td>${s.current_company || '<em>Unplaced</em>'}</td>
           <td>${tierBadge}</td>
           <td>${s.current_ctc ? `₹${s.current_ctc} LPA` : '-'}</td>
-          <td>
-            <small>PPO: ${s.ppo_status}</small><br>
-            <small>NOC: ${s.noc_status}</small>
-          </td>
           <td>${penaltyBadge}</td>
           <td>
             <div style="display: flex; gap: 4px;">

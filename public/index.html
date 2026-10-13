@@ -26,64 +26,106 @@
       </div>
 
       <div class="auth-card-body">
-        <!-- One-Click Institutional Evaluation Profiles -->
-        <div class="auth-preset-title">⚡ Quick Sign-In (Evaluation Personas)</div>
-        <div class="auth-presets-grid">
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('admin')">
-            <span>👑</span> <span>Placement Admin</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('officer')">
-            <span>📋</span> <span>Placement Officer</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('coord_dfis')">
-            <span>🔍</span> <span>Coordinator (DFIS)</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('coord_cs')">
-            <span>💻</span> <span>Coordinator (CS)</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_aplus')">
-            <span>🎓</span> <span>Student (A+ Tier)</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_b')">
-            <span>🎓</span> <span>Student (B Tier)</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_unplaced')">
-            <span>🎓</span> <span>Student (Unplaced)</span>
-          </button>
-          <button type="button" class="auth-preset-chip" onclick="Auth.quickLoginPreset('student_absent')">
-            <span>⚠️</span> <span>Student (Flagged)</span>
-          </button>
+        <!-- ============================================== -->
+        <!-- STEP 1: INSTITUTIONAL CREDENTIALS              -->
+        <!-- ============================================== -->
+        <div id="auth-step-credentials">
+          <div class="auth-step-header">
+            <h3 class="auth-step-title">🔐 Institutional Single Sign-On</h3>
+            <p class="auth-step-desc">Enter your NFSU placement credentials. Mandatory Two-Factor Email OTP authentication is enforced for all roles.</p>
+          </div>
+
+          <form id="login-form">
+            <div class="form-field-block">
+              <label for="login-username">Institutional Username or Email</label>
+              <input type="text" id="login-username" class="form-input-text" placeholder="e.g. admin or roll number" autocomplete="username" required>
+            </div>
+
+            <div class="form-field-block">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" class="form-input-text" placeholder="••••••••••••" autocomplete="current-password" required>
+            </div>
+
+            <div id="login-error-msg" style="display: none; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: var(--radius-sm); padding: 10px; color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 14px; font-weight: 600;"></div>
+
+            <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 600;">
+              🔐 Verify Credentials & Send Email OTP
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 14px;">
+            <button type="button" id="toggle-eval-creds-btn" class="btn btn-outline btn-sm" style="font-size: 0.75rem; border: none; color: var(--accent-cyan); background: transparent; cursor: pointer;">
+              ℹ️ View Evaluation Test Credentials
+            </button>
+          </div>
+
+          <!-- Evaluation Credentials Drawer (Modal/Collapsible) -->
+          <div id="eval-creds-drawer" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.78rem;">
+            <div style="font-weight: 700; color: var(--nfsu-gold); margin-bottom: 6px;">Evaluation Test Accounts (All require 2FA OTP):</div>
+            <ul style="padding-left: 18px; margin: 0; line-height: 1.6; color: var(--text-muted);">
+              <li><strong>Admin:</strong> <code>admin</code> / <code>Admin@NFSU2026</code></li>
+              <li><strong>Placement Officer:</strong> <code>officer</code> / <code>Officer@NFSU2026</code></li>
+              <li><strong>DFIS Coordinator:</strong> <code>coord_dfis</code> / <code>Coord@NFSU2026</code></li>
+              <li><strong>CS Coordinator:</strong> <code>coord_cs</code> / <code>Coord@NFSU2026</code></li>
+              <li><strong>Student (A+ Tier):</strong> <code>student_aplus</code> / <code>Student@NFSU2026</code></li>
+              <li><strong>Student (B Tier):</strong> <code>student_b</code> / <code>Student@NFSU2026</code></li>
+              <li><strong>Student (Unplaced):</strong> <code>student_unplaced</code> / <code>Student@NFSU2026</code></li>
+              <li><strong>Student (Flagged/Absent):</strong> <code>student_absent</code> / <code>Student@NFSU2026</code></li>
+            </ul>
+          </div>
         </div>
 
-        <div class="auth-divider">
-          <span>Or Sign In with Institutional Credentials</span>
+        <!-- ============================================== -->
+        <!-- STEP 2: MANDATORY 2FA EMAIL OTP VERIFICATION   -->
+        <!-- ============================================== -->
+        <div id="auth-step-otp" style="display: none;">
+          <div class="auth-step-header">
+            <h3 class="auth-step-title">🛡️ Two-Factor Email Verification</h3>
+            <p class="auth-step-desc">A 6-digit cryptographic verification code has been dispatched to your institutional email:</p>
+            <div id="otp-target-email" class="otp-masked-badge">loading...</div>
+          </div>
+
+          <!-- Institutional In-App Notification (Ensures Evaluator Test Usability) -->
+          <div id="otp-dispatch-notification" class="otp-dispatch-card">
+            <div class="otp-dispatch-icon">📬</div>
+            <div class="otp-dispatch-content">
+              <strong>NFSU Email Dispatcher</strong>
+              <div>Security Verification Code: <strong id="otp-live-display" class="otp-highlight-code">------</strong></div>
+              <small style="color: var(--text-dim); display: block; margin-top: 4px;">Dispatched to your registered inbox. Valid for 5 minutes.</small>
+            </div>
+          </div>
+
+          <form id="otp-verify-form" onsubmit="event.preventDefault(); Auth.submitOtp();">
+            <div class="form-field-block" style="text-align: center; margin-top: 14px;">
+              <label for="login-otp-code" style="font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; color: var(--accent-amber);">
+                Enter 6-Digit Email OTP
+              </label>
+              <input type="text" id="login-otp-code" class="form-input-text otp-code-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" autocomplete="one-time-code" required autofocus>
+            </div>
+
+            <div class="otp-timer-box">
+              <span style="color: var(--text-muted);">⏱️ Expires in: <strong id="otp-timer-display" style="color: var(--accent-cyan);">05:00</strong></span>
+              <span id="otp-attempts-display" style="color: var(--text-dim);">Attempts remaining: <strong>3</strong></span>
+            </div>
+
+            <div id="otp-error-msg" style="display: none; background: rgba(220, 38, 38, 0.12); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: var(--radius-sm); padding: 10px; color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 12px; font-weight: 600; text-align: center;"></div>
+
+            <button type="submit" id="btn-verify-otp" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 600; margin-bottom: 10px;">
+              ✅ Verify OTP & Enter Portal
+            </button>
+
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="btn-resend-otp" class="btn btn-outline" style="flex: 1; font-size: 0.82rem;" onclick="Auth.resendOtp()">
+                🔄 Resend Code
+              </button>
+              <button type="button" id="btn-back-step1" class="btn btn-outline" style="flex: 1; font-size: 0.82rem;" onclick="Auth.backToStep1()">
+                ← Back to Credentials
+              </button>
+            </div>
+          </form>
         </div>
 
-        <!-- Login Form -->
-        <form id="login-form">
-          <div class="form-field-block">
-            <label for="login-username">Institutional Username</label>
-            <input type="text" id="login-username" class="form-input-text" placeholder="e.g. admin or roll number" required>
-          </div>
-
-          <div class="form-field-block">
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" class="form-input-text" placeholder="••••••••••••" required>
-          </div>
-
-          <div class="form-field-block" id="mfa-code-block" style="display: none;">
-            <label for="login-mfa" style="color: var(--accent-amber);">Multi-Factor Auth Code (TOTP / SMS)</label>
-            <input type="text" id="login-mfa" class="form-input-text" placeholder="Enter 6-digit code (Demo: 123456)">
-          </div>
-
-          <div id="login-error-msg" style="display: none; color: var(--accent-rose); font-size: 0.82rem; margin-bottom: 12px; font-weight: 600;"></div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;">
-            🔐 Secure Sign In
-          </button>
-        </form>
-
-        <div class="auth-footer-notice">
+        <div class="auth-footer-notice" style="margin-top: 20px;">
           <strong>Security Notice:</strong> Authorized access only. All sessions, data modifications, and IP addresses are cryptographically tracked in a tamper-evident SHA-256 audit ledger in compliance with NFSU Information Security Policies.
         </div>
       </div>
@@ -352,6 +394,15 @@
               <option value="Internship + PPO/FTE">Internship + PPO/FTE</option>
             </select>
 
+            <select id="student-block-select" class="form-select">
+              <option value="All">All ID Conditions</option>
+              <option value="blocked">🚫 Blocked / Locked IDs</option>
+              <option value="active">✅ Active & Eligible IDs</option>
+              <option value="absent">⚠️ Absenteeism Banned</option>
+              <option value="locked_aplus">🔒 Category A+ Locked</option>
+              <option value="deregistered">🚫 Deregistered</option>
+            </select>
+
             <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer;">
               <input type="checkbox" id="show-archived-checkbox"> Archived
             </label>
@@ -366,6 +417,7 @@
                   <th>Programme</th>
                   <th>CGPA</th>
                   <th>Contact (Role Masked)</th>
+                  <th>ID Policy Status</th>
                   <th>Registration</th>
                   <th>Eligibility</th>
                   <th>Placement Status</th>
@@ -711,6 +763,9 @@
               </span>
             </div>
           </div>
+
+          <!-- Dynamic ID Block / Policy Lock Alert Banner -->
+          <div id="sp-id-block-banner" style="display: none; margin-bottom: 20px;"></div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
             <div class="content-panel">

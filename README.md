@@ -63,17 +63,17 @@ The system automates policy enforcement, eliminates manual data-entry discrepanc
    - Forensic Tamper Demonstration to show out-of-band manipulation detection.
 
 6. **Automated Security & Policy Test Lab (Deliverable 7)**:
-   - Built-in test runner executing 13 automated test cases covering switching rules, offer types, absenteeism bans, IDOR attacks, privilege escalation, SQL injection, and cryptographic integrity.
-   - **Pass Rate: 13 / 13 Passed (100%)**.
+   - Built-in test runner executing 18 automated test cases covering switching rules, offer types, absenteeism bans, IDOR attacks, privilege escalation, SQL injection, ID block conditions, and cryptographic integrity.
+   - **Pass Rate: 18 / 18 Passed (100%)**.
 
 7. **Encrypted Backup & Recovery**:
    - AES-256-CBC encrypted database snapshots with tested restoration procedures.
 
 ---
 
-## 🔑 Login Credentials
+## 🔑 Login Credentials & Mandatory 2FA Flow
 
-> **Default MFA Code (if prompted):** `123456`
+> **Mandatory Two-Factor Authentication (2FA):** Every sign-in requires institutional credentials (Step 1) followed by a 6-digit cryptographic Email OTP verification (Step 2). For evaluation convenience, the dispatched 6-digit OTP code is prominently displayed in the on-screen Institutional Email Dispatcher notification banner as well as logged to the console. Direct entry without 2FA validation is strictly blocked.
 
 | Role / Persona | Username | Password | Permissions |
 | :--- | :--- | :--- | :--- |

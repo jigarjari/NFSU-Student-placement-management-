@@ -195,64 +195,129 @@ body {
   padding: 28px 24px;
 }
 
-.auth-preset-title {
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 10px;
-}
-
-.auth-presets-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.auth-preset-chip {
-  padding: 8px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-main);
-  cursor: pointer;
-  text-align: left;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.auth-preset-chip:hover {
-  border-color: var(--nfsu-gold);
-  background: var(--nfsu-gold-bg);
-  transform: translateY(-1px);
-}
-
-.auth-divider {
-  display: flex;
-  align-items: center;
+.auth-step-header {
   text-align: center;
-  margin: 18px 0;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.auth-step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.auth-step-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.otp-masked-badge {
+  display: inline-block;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-cyan);
+  font-family: monospace;
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  margin: 10px 0 16px;
   letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid var(--border-light);
+.otp-dispatch-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  text-align: left;
 }
 
-.auth-divider span {
-  padding: 0 10px;
+.otp-dispatch-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.otp-dispatch-content strong {
+  color: var(--text-main);
+  font-size: 0.82rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.otp-highlight-code {
+  font-family: monospace;
+  font-size: 1.15rem;
+  color: var(--nfsu-gold);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.15em;
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.otp-code-input {
+  text-align: center !important;
+  font-size: 1.6rem !important;
+  letter-spacing: 0.35em !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  background: var(--bg-input) !important;
+  border: 2px solid var(--border-subtle) !important;
+  color: var(--nfsu-gold) !important;
+  border-radius: var(--radius-sm);
+}
+
+.otp-code-input:focus {
+  border-color: var(--nfsu-gold) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(198, 146, 20, 0.2) !important;
+}
+
+.otp-timer-box {
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-light);
+}
+
+/* ID Block Status Badges */
+.badge-id-blocked {
+  background: rgba(220, 38, 38, 0.15) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(220, 38, 38, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.badge-id-locked {
+  background: rgba(147, 51, 234, 0.15) !important;
+  color: #d8b4fe !important;
+  border: 1px solid rgba(147, 51, 234, 0.35) !important;
+  font-weight: 700 !important;
+}
+
+.badge-id-active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  font-weight: 600 !important;
 }
 
 .auth-footer-notice {

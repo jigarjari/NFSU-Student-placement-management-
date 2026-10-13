@@ -133,15 +133,23 @@ const App = {
   },
 
   setupForms() {
-    // Institutional Login Form
+    // Institutional Login Form (Step 1: Credentials -> Request 2FA OTP)
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
-        const mfa = document.getElementById('login-mfa')?.value.trim();
-        await Auth.login(username, password, mfa);
+        await Auth.loginStep1(username, password);
+      });
+    }
+
+    // Toggle Evaluation Credentials Guide Drawer
+    const toggleCredsBtn = document.getElementById('toggle-eval-creds-btn');
+    const credsDrawer = document.getElementById('eval-creds-drawer');
+    if (toggleCredsBtn && credsDrawer) {
+      toggleCredsBtn.addEventListener('click', () => {
+        credsDrawer.style.display = (credsDrawer.style.display === 'none') ? 'block' : 'none';
       });
     }
 
@@ -290,6 +298,7 @@ const App = {
     document.getElementById('student-search-input')?.addEventListener('input', () => Students.load());
     document.getElementById('student-course-select')?.addEventListener('change', () => Students.load());
     document.getElementById('student-status-select')?.addEventListener('change', () => Students.load());
+    document.getElementById('student-block-select')?.addEventListener('change', () => Students.load());
     document.getElementById('show-archived-checkbox')?.addEventListener('change', () => Students.load());
     document.getElementById('export-students-csv-btn')?.addEventListener('click', () => Students.exportCsv());
 

@@ -1,16 +1,10 @@
 const Auth = {
   currentUser: null,
-
-  PRESET_CREDENTIALS: {
-    admin: { username: 'admin', password: 'Admin@NFSU2026' },
-    officer: { username: 'officer', password: 'Officer@NFSU2026' },
-    coord_dfis: { username: 'coord_dfis', password: 'Coord@NFSU2026' },
-    coord_cs: { username: 'coord_cs', password: 'Coord@NFSU2026' },
-    student_aplus: { username: 'student_aplus', password: 'Student@NFSU2026' },
-    student_b: { username: 'student_b', password: 'Student@NFSU2026' },
-    student_unplaced: { username: 'student_unplaced', password: 'Student@NFSU2026' },
-    student_absent: { username: 'student_absent', password: 'Student@NFSU2026' }
-  },
+  currentUserStudentData: null,
+  otpSession: null,
+  otpTimerInterval: null,
+  otpRemainingSeconds: 300,
+  otpAttemptsRemaining: 3,
 
   async init() {
     if (API.token) {
@@ -21,7 +15,7 @@ const Auth = {
         this.showPortalScreen();
         return;
       } catch (err) {
-        console.warn('Existing token expired or invalid:', err.message);
+        console.warn('Existing session token expired or invalid:', err.message);
         API.setToken(null);
       }
     }
@@ -30,17 +24,20 @@ const Auth = {
 
   showLoginScreen() {
     this.currentUser = null;
+    this.currentUserStudentData = null;
+    this.otpSession = null;
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+      this.otpTimerInterval = null;
+    }
+
     const loginScreen = document.getElementById('auth-portal-screen');
     const appContainer = document.getElementById('authenticated-app-container');
 
     if (loginScreen) loginScreen.style.display = 'flex';
     if (appContainer) appContainer.style.display = 'none';
 
-    // Clear password & error
-    const passInput = document.getElementById('login-password');
-    const errBox = document.getElementById('login-error-msg');
-    if (passInput) passInput.value = '';
-    if (errBox) errBox.style.display = 'none';
+    this.backToStep1();
   },
 
   showPortalScreen() {
@@ -54,7 +51,7 @@ const Auth = {
     this.configureRolePermissions();
 
     if (window.App) {
-      if (this.currentUser.role === 'student') {
+      if (this.currentUser && this.currentUser.role === 'student') {
         window.App.switchView('student-portal');
       } else {
         window.App.switchView('dashboard');
@@ -62,65 +59,279 @@ const Auth = {
     }
   },
 
-  async login(username, password, mfaCode = null) {
+  // ====================================================================
+  // STEP 1: Verify Username & Password -> Request Email 2FA OTP
+  // ====================================================================
+  async loginStep1(username, password) {
     const errBox = document.getElementById('login-error-msg');
-    const mfaBlock = document.getElementById('mfa-code-block');
+    const submitBtn = document.getElementById('login-submit-btn');
+
     if (errBox) errBox.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Verifying Credentials...';
+    }
 
     try {
-      const res = await API.post('/api/auth/login', {
-        username,
-        password,
-        mfaCode: mfaCode || (mfaBlock && mfaBlock.style.display !== 'none' ? document.getElementById('login-mfa')?.value : null)
+      const res = await API.post('/api/auth/login', { username, password });
+
+      if (res.require2FA) {
+        // Store OTP Verification Session
+        this.otpSession = {
+          sessionId: res.sessionId,
+          username: res.username,
+          maskedEmail: res.maskedEmail,
+          debugOtp: res.debugOtp
+        };
+
+        // Transition from Step 1 to Step 2
+        const step1 = document.getElementById('auth-step-credentials');
+        const step2 = document.getElementById('auth-step-otp');
+        if (step1) step1.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+
+        const emailEl = document.getElementById('otp-target-email');
+        const codeDisplayEl = document.getElementById('otp-live-display');
+        const otpInput = document.getElementById('login-otp-code');
+        const otpErr = document.getElementById('otp-error-msg');
+
+        if (emailEl) emailEl.textContent = res.maskedEmail || 'Institutional Email';
+        if (codeDisplayEl) codeDisplayEl.textContent = res.debugOtp || '------';
+        if (otpInput) {
+          otpInput.value = '';
+          setTimeout(() => otpInput.focus(), 100);
+        }
+        if (otpErr) otpErr.style.display = 'none';
+
+        // Start 5-minute countdown timer & reset attempts
+        this.otpAttemptsRemaining = 3;
+        this.updateAttemptsDisplay();
+        this.startOtpCountdown(300);
+      } else if (res.token) {
+        // Direct login fallback if 2FA disabled on specific policy
+        API.setToken(res.token);
+        this.currentUser = res.user;
+        this.showPortalScreen();
+      }
+    } catch (err) {
+      if (errBox) {
+        errBox.style.display = 'block';
+        errBox.textContent = err.message || 'Authentication failed. Please verify credentials.';
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔐 Verify Credentials & Send Email OTP';
+      }
+    }
+  },
+
+  // ====================================================================
+  // STEP 2: Submit & Validate 6-Digit Email OTP
+  // ====================================================================
+  async submitOtp() {
+    if (!this.otpSession) {
+      alert('Verification session expired. Please sign in again.');
+      this.backToStep1();
+      return;
+    }
+
+    const otpInput = document.getElementById('login-otp-code');
+    const otpErr = document.getElementById('otp-error-msg');
+    const verifyBtn = document.getElementById('btn-verify-otp');
+    const code = otpInput ? otpInput.value.trim() : '';
+
+    if (!code || code.length !== 6) {
+      if (otpErr) {
+        otpErr.style.display = 'block';
+        otpErr.textContent = 'Please enter a valid 6-digit numeric OTP code.';
+      }
+      return;
+    }
+
+    if (otpErr) otpErr.style.display = 'none';
+    if (verifyBtn) {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = '⏳ Verifying Code...';
+    }
+
+    try {
+      const res = await API.post('/api/auth/verify-2fa-otp', {
+        sessionId: this.otpSession.sessionId,
+        otp: code
       });
 
-      if (res.requireMfa) {
-        if (mfaBlock) mfaBlock.style.display = 'block';
-        if (errBox) {
-          errBox.style.display = 'block';
-          errBox.style.color = 'var(--accent-amber)';
-          errBox.textContent = res.message || 'MFA Code required. Enter 123456 to verify.';
-        }
-        return;
+      // OTP Successfully Verified!
+      if (this.otpTimerInterval) {
+        clearInterval(this.otpTimerInterval);
+        this.otpTimerInterval = null;
       }
 
       API.setToken(res.token);
       this.currentUser = res.user;
 
-      // Fetch student data if student
-      if (this.currentUser.studentId) {
-        const me = await API.get('/api/auth/me');
-        this.currentUserStudentData = me.student;
+      // Fetch student data if role is student
+      if (this.currentUser && this.currentUser.studentId) {
+        try {
+          const me = await API.get('/api/auth/me');
+          this.currentUserStudentData = me.student;
+        } catch {
+          // ignore
+        }
       }
 
       this.showPortalScreen();
     } catch (err) {
-      if (errBox) {
-        errBox.style.display = 'block';
-        errBox.style.color = 'var(--accent-rose)';
-        errBox.textContent = err.message || 'Authentication failed. Please verify credentials.';
+      this.otpAttemptsRemaining = Math.max(0, this.otpAttemptsRemaining - 1);
+      this.updateAttemptsDisplay();
+
+      if (otpErr) {
+        otpErr.style.display = 'block';
+        otpErr.textContent = err.message || 'Invalid verification code.';
+      }
+
+      if (this.otpAttemptsRemaining <= 0 || (err.message && err.message.toLowerCase().includes('revoked'))) {
+        setTimeout(() => {
+          alert('Security Alert: Too many incorrect OTP attempts. Session has been revoked.');
+          this.backToStep1();
+        }, 800);
+      }
+    } finally {
+      if (verifyBtn) {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = '✅ Verify OTP & Enter Portal';
       }
     }
   },
 
-  async quickLoginPreset(presetKey) {
-    const cred = this.PRESET_CREDENTIALS[presetKey];
-    if (!cred) return;
+  // Resend 2FA Email OTP
+  async resendOtp() {
+    if (!this.otpSession) return;
+    const resendBtn = document.getElementById('btn-resend-otp');
+    const otpErr = document.getElementById('otp-error-msg');
+    const codeDisplayEl = document.getElementById('otp-live-display');
 
-    const uInput = document.getElementById('login-username');
-    const pInput = document.getElementById('login-password');
-    if (uInput) uInput.value = cred.username;
-    if (pInput) pInput.value = cred.password;
+    if (resendBtn) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = '⏳ Sending...';
+    }
 
-    // Direct authentic login with MFA code pre-filled
-    await this.login(cred.username, cred.password, '123456');
+    try {
+      const res = await API.post('/api/auth/resend-otp', {
+        sessionId: this.otpSession.sessionId
+      });
+
+      this.otpSession.debugOtp = res.debugOtp;
+      if (codeDisplayEl) codeDisplayEl.textContent = res.debugOtp || '------';
+
+      this.otpAttemptsRemaining = 3;
+      this.updateAttemptsDisplay();
+      this.startOtpCountdown(300);
+
+      if (otpErr) {
+        otpErr.style.display = 'block';
+        otpErr.style.color = 'var(--accent-emerald)';
+        otpErr.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        otpErr.style.background = 'rgba(16, 185, 129, 0.12)';
+        otpErr.textContent = '✅ Fresh 6-digit verification code dispatched to your institutional inbox.';
+      }
+    } catch (err) {
+      if (otpErr) {
+        otpErr.style.display = 'block';
+        otpErr.style.color = 'var(--accent-rose)';
+        otpErr.textContent = err.message || 'Failed to resend verification code.';
+      }
+    } finally {
+      if (resendBtn) {
+        resendBtn.disabled = false;
+        resendBtn.textContent = '🔄 Resend Code';
+      }
+    }
   },
 
-  logout() {
-    API.setToken(null);
-    this.currentUser = null;
-    this.currentUserStudentData = null;
-    this.showLoginScreen();
+  startOtpCountdown(seconds = 300) {
+    if (this.otpTimerInterval) clearInterval(this.otpTimerInterval);
+    this.otpRemainingSeconds = seconds;
+    const timerDisplay = document.getElementById('otp-timer-display');
+
+    const updateTimer = () => {
+      const mins = Math.floor(this.otpRemainingSeconds / 60);
+      const secs = this.otpRemainingSeconds % 60;
+      const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      if (timerDisplay) {
+        timerDisplay.textContent = formatted;
+        if (this.otpRemainingSeconds <= 60) {
+          timerDisplay.style.color = 'var(--accent-rose)';
+        } else {
+          timerDisplay.style.color = 'var(--accent-cyan)';
+        }
+      }
+
+      if (this.otpRemainingSeconds <= 0) {
+        clearInterval(this.otpTimerInterval);
+        this.otpTimerInterval = null;
+        if (timerDisplay) timerDisplay.textContent = 'Expired (00:00)';
+        const otpErr = document.getElementById('otp-error-msg');
+        if (otpErr) {
+          otpErr.style.display = 'block';
+          otpErr.textContent = 'Verification code has expired. Please click Resend Code.';
+        }
+      }
+      this.otpRemainingSeconds -= 1;
+    };
+
+    updateTimer();
+    this.otpTimerInterval = setInterval(updateTimer, 1000);
+  },
+
+  updateAttemptsDisplay() {
+    const attemptsEl = document.getElementById('otp-attempts-display');
+    if (attemptsEl) {
+      attemptsEl.innerHTML = `Attempts remaining: <strong>${this.otpAttemptsRemaining}</strong>`;
+      if (this.otpAttemptsRemaining <= 1) {
+        attemptsEl.style.color = 'var(--accent-rose)';
+      } else {
+        attemptsEl.style.color = 'var(--text-dim)';
+      }
+    }
+  },
+
+  backToStep1() {
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+      this.otpTimerInterval = null;
+    }
+    this.otpSession = null;
+
+    const step1 = document.getElementById('auth-step-credentials');
+    const step2 = document.getElementById('auth-step-otp');
+    if (step1) step1.style.display = 'block';
+    if (step2) step2.style.display = 'none';
+
+    const passInput = document.getElementById('login-password');
+    const otpInput = document.getElementById('login-otp-code');
+    const loginErr = document.getElementById('login-error-msg');
+    const otpErr = document.getElementById('otp-error-msg');
+
+    if (passInput) passInput.value = '';
+    if (otpInput) otpInput.value = '';
+    if (loginErr) loginErr.style.display = 'none';
+    if (otpErr) otpErr.style.display = 'none';
+  },
+
+  async logout() {
+    try {
+      if (API.token) {
+        await API.post('/api/auth/logout', {});
+      }
+    } catch {
+      // ignore
+    } finally {
+      API.setToken(null);
+      this.currentUser = null;
+      this.currentUserStudentData = null;
+      this.showLoginScreen();
+    }
   },
 
   updateUserBadge() {
@@ -205,18 +416,56 @@ const Auth = {
     const badgeEl = document.getElementById('sp-placement-status-badge');
     const detailsBox = document.getElementById('sp-details-list');
     const switchingBox = document.getElementById('sp-switching-status-box');
+    const idBlockBanner = document.getElementById('sp-id-block-banner');
 
     if (nameEl) nameEl.textContent = s.student_name;
-    if (rollEl) rollEl.textContent = `Placement ID: ${s.placement_id} • Programme: ${s.course} (${s.batch})`;
+    if (rollEl) rollEl.textContent = `Placement ID: ${s.placement_id} • Programme: ${s.course} (${s.batch || '2026-27'})`;
     if (badgeEl) {
       badgeEl.textContent = `${s.placement_status} ${s.current_category ? `(${s.current_category})` : ''}`;
       badgeEl.className = s.placement_status === 'Unplaced' ? 'tag tag-warning' : 'tag tag-a-plus';
+    }
+
+    // Prominent Student ID Block Status Banner per Policy Condition
+    if (idBlockBanner) {
+      if (s.id_block_status && s.id_block_status.isBlocked) {
+        idBlockBanner.style.display = 'block';
+        const isAplus = s.id_block_status.badge && s.id_block_status.badge.includes('APLUS');
+        const isAbsent = s.id_block_status.badge && s.id_block_status.badge.includes('ABSENT');
+        const bannerBg = isAplus ? 'rgba(147, 51, 234, 0.12)' : 'rgba(220, 38, 38, 0.12)';
+        const bannerBorder = isAplus ? 'var(--accent-purple)' : 'var(--accent-rose)';
+        const icon = isAplus ? '🔒' : '🚫';
+
+        idBlockBanner.innerHTML = `
+          <div style="padding: 16px 20px; background: ${bannerBg}; border-left: 5px solid ${bannerBorder}; border-radius: var(--radius-sm); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <strong style="font-size: 0.98rem; color: #ffffff;">${icon} Student ID Status: ${s.id_block_status.label}</strong>
+              <span class="badge ${isAplus ? 'badge-id-locked' : 'badge-id-blocked'}">POLICY LOCKED</span>
+            </div>
+            <div style="font-size: 0.86rem; color: #e2e8f0; line-height: 1.5;">
+              ${s.id_block_status.reason}
+            </div>
+            ${isAbsent ? `
+              <div style="margin-top: 10px; font-size: 0.8rem; color: var(--text-dim);">
+                Under Clause 3.2, unexcused absence results in immediate exclusion from campus recruitment drives.
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else {
+        idBlockBanner.style.display = 'block';
+        idBlockBanner.innerHTML = `
+          <div style="padding: 12px 18px; background: rgba(16, 185, 129, 0.08); border-left: 5px solid var(--accent-emerald); border-radius: var(--radius-sm); border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.86rem;">
+            <strong style="color: var(--accent-emerald);">✅ Student ID Status: Active & Eligible</strong> — Your placement ID is verified and in good standing for matching campus recruitment drives.
+          </div>
+        `;
+      }
     }
 
     if (detailsBox) {
       detailsBox.innerHTML = `
         <div><strong>Institutional Email:</strong> ${s.email_id}</div>
         <div><strong>CGPA:</strong> ${s.cgpa}</div>
+        <div><strong>ID Policy Status:</strong> <span class="badge ${s.id_block_status?.isBlocked ? 'badge-id-blocked' : 'badge-id-active'}">${s.id_block_status?.label || 'Active'}</span></div>
         <div><strong>Registration Status:</strong> <span class="tag ${s.registration_status === 'Registered' ? 'tag-success' : 'tag-danger'}">${s.registration_status}</span></div>
         <div><strong>Academic Eligibility:</strong> <span class="tag ${s.eligibility_status === 'Eligible' ? 'tag-success' : 'tag-warning'}">${s.eligibility_status}</span></div>
         <div><strong>Current Recruiting Company:</strong> ${s.current_company || 'None (Unplaced)'}</div>

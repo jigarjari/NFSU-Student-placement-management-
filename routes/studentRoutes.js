@@ -3,7 +3,7 @@ const router = express.Router();
 const { db } = require('../db/database');
 const { authenticate, requireRole } = require('./authMiddleware');
 const { logEvent } = require('../services/auditLogger');
-const { determineCategory } = require('../services/policyEngine');
+const { determineCategory, computeIdBlockStatus } = require('../services/policyEngine');
 
 function maskMobile(mobile, role) {
   if (role === 'admin' || role === 'officer') return mobile;
@@ -57,11 +57,11 @@ router.get('/', authenticate, (req, res) => {
 
   const rows = db.prepare(query).all(...params);
 
-  // Apply privacy & confidentiality masking based on role
+  // Apply privacy & confidentiality masking based on role + ID Block status
   const maskedRows = rows.map(r => ({
     ...r,
+    id_block_status: computeIdBlockStatus(r),
     mobile_number: maskMobile(r.mobile_number, user.role),
-    // Mask sensitive compensation from recruiter if not their own offer
     current_ctc: (user.role === 'recruiter') ? 'Restricted' : r.current_ctc,
     current_stipend: (user.role === 'recruiter') ? 'Restricted' : r.current_stipend
   }));
@@ -109,6 +109,7 @@ router.get('/:id', authenticate, (req, res) => {
   return res.json({
     student: {
       ...student,
+      id_block_status: computeIdBlockStatus(student),
       mobile_number: maskMobile(student.mobile_number, user.role)
     }
   });
