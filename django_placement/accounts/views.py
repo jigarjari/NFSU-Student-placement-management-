@@ -22,10 +22,16 @@ def login_view(request):
             username = form.cleaned_data['username'].strip()
             password = form.cleaned_data['password']
 
-            # Check if user exists to enforce account lockout
+            # Check if user exists to enforce account lockout (Username, Email, or Student ID)
             user_obj = User.objects.filter(username=username).first()
             if not user_obj:
-                user_obj = User.objects.filter(email=username).first()
+                user_obj = User.objects.filter(email__iexact=username).first()
+            if not user_obj:
+                # Resolve via Student ID / Enrollment Number
+                from academics.models import StudentAcademicRecord
+                academic_rec = StudentAcademicRecord.objects.filter(enrollment_number__iexact=username).select_related('user').first()
+                if academic_rec:
+                    user_obj = academic_rec.user
 
             if user_obj:
                 profile, _ = UserProfile.objects.get_or_create(
@@ -42,7 +48,7 @@ def login_view(request):
                     messages.error(request, f"Account Temporarily Locked: 5 failed attempts detected. Please wait {mins_remaining} minutes before trying again.")
                     return render(request, 'accounts/login.html', {'form': form})
 
-            # Authenticate credentials
+            # Authenticate credentials (direct username or resolved user account)
             user = authenticate(request, username=username, password=password)
             if not user and user_obj:
                 user = authenticate(request, username=user_obj.username, password=password)

@@ -207,10 +207,10 @@
                             </li>
                         {% endif %}
 
-                        {% if user_role == 'COORDINATOR' %}
+                        {% if user_role in 'ADMIN,OFFICER,COORDINATOR' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'academics:student_records' %}">
-                                    <i class="bi bi-check-circle-fill me-1"></i> Student Verifications
+                                    <i class="bi bi-people-fill me-1"></i> {% if user_role == 'COORDINATOR' %}Assigned Students{% else %}All Students Registry{% endif %}
                                 </a>
                             </li>
                         {% endif %}

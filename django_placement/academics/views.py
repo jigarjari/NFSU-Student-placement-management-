@@ -23,36 +23,60 @@ def student_records_view(request):
     user = request.user
     profile = getattr(user, 'profile', None)
     
-    records = StudentAcademicRecord.objects.select_related('user', 'course', 'course__department').all()
+    base_records = StudentAcademicRecord.objects.select_related('user', 'course', 'course__department')
 
     # Scope Course Coordinator strictly to their assigned courses!
     if profile and profile.role == 'COORDINATOR':
         coordinated_course_ids = Course.objects.filter(coordinator=user).values_list('id', flat=True)
-        records = records.filter(course_id__in=coordinated_course_ids)
+        base_records = base_records.filter(course_id__in=coordinated_course_ids)
 
-    # Filtering
+    # Compute high-level metrics for this role scope
+    total_count = base_records.count()
+    verified_count = base_records.filter(verification_status=VerificationStatus.VERIFIED).count()
+    unverified_count = base_records.filter(verification_status=VerificationStatus.UNVERIFIED).count()
+    placed_count = base_records.exclude(current_placement_status=PlacementStatus.UNPLACED).count()
+    unplaced_count = base_records.filter(current_placement_status=PlacementStatus.UNPLACED).count()
+
+    # Apply filters
+    records = base_records
     course_filter = request.GET.get('course')
     status_filter = request.GET.get('status')
+    placement_filter = request.GET.get('placement')
     search_query = request.GET.get('q')
 
     if course_filter and course_filter != 'All':
         records = records.filter(course__code=course_filter)
     if status_filter and status_filter != 'All':
         records = records.filter(verification_status=status_filter)
+    if placement_filter and placement_filter != 'All':
+        records = records.filter(current_placement_status=placement_filter)
     if search_query:
         records = records.filter(
             Q(enrollment_number__icontains=search_query) |
             Q(user__first_name__icontains=search_query) |
-            Q(user__username__icontains=search_query)
+            Q(user__last_name__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(user__email__icontains=search_query)
         )
 
-    courses = Course.objects.all()
+    if profile and profile.role == 'COORDINATOR':
+        courses = Course.objects.filter(coordinator=user)
+    else:
+        courses = Course.objects.all()
+
     return render(request, 'academics/student_records.html', {
         'records': records,
         'courses': courses,
         'selected_course': course_filter,
         'selected_status': status_filter,
-        'search_query': search_query
+        'selected_placement': placement_filter,
+        'search_query': search_query,
+        'total_count': total_count,
+        'verified_count': verified_count,
+        'unverified_count': unverified_count,
+        'placed_count': placed_count,
+        'unplaced_count': unplaced_count,
+        'user_role': profile.role if profile else 'USER'
     })
 
 

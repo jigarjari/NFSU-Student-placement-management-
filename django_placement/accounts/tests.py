@@ -33,6 +33,22 @@ class AuthenticationAndRBACTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue('_auth_user_id' in self.client.session)
 
+    def test_student_can_login_via_student_id(self):
+        """Students can authenticate directly using their Student ID (Enrollment Number)."""
+        from academics.models import Department, Course, StudentAcademicRecord, VerificationStatus
+        dept = Department.objects.create(name="Forensics", code="FS")
+        course = Course.objects.create(name="Cyber Security", code="CS", department=dept)
+        StudentAcademicRecord.objects.create(
+            user=self.student_user, enrollment_number="NFSU2024TEST01",
+            course=course, cgpa=8.0, verification_status=VerificationStatus.VERIFIED
+        )
+        response = self.client.post(reverse('accounts:login'), {
+            'username': 'NFSU2024TEST01',
+            'password': 'StudentPassword123!'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.student_user.id)
+
     def test_invalid_login(self):
         """Test authentication failure with invalid password."""
         response = self.client.post(reverse('accounts:login'), {

@@ -26,11 +26,12 @@
                 {% endif %}
 
                 <div class="mb-3">
-                    <label for="id_username" class="form-label fw-semibold small">Username / Student ID</label>
+                    <label for="id_username" class="form-label fw-semibold small">Student ID / Username / Institutional Email</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
-                        <input type="text" name="username" id="id_username" class="form-control" placeholder="e.g. admin or 24mtech01" required autofocus>
+                        <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
+                        <input type="text" name="username" id="id_username" class="form-control" placeholder="e.g. NFSU2024DFIS03 or admin" required autofocus>
                     </div>
+                    <div class="form-text small">Students can sign in directly using their <strong>Student ID (e.g. NFSU2024DFIS03)</strong>.</div>
                 </div>
 
                 <div class="mb-4">
@@ -57,14 +58,14 @@
         <div class="card card-custom mt-3">
             <div class="card-body p-3">
                 <h3 class="h6 fw-bold mb-2 text-primary d-flex align-items-center">
-                    <i class="bi bi-key-fill me-2"></i> Evaluation Credentials (All 5 Roles)
+                    <i class="bi bi-key-fill me-2"></i> Evaluation Credentials (All 5 Roles & Student IDs)
                 </h3>
                 <div class="table-responsive">
                     <table class="table table-sm table-borderless small mb-0">
-                        <thead>
+                        <thead class="table-light">
                             <tr class="border-bottom">
                                 <th>Role</th>
-                                <th>Username</th>
+                                <th>Login ID / Student ID</th>
                                 <th>Password</th>
                                 <th>Scenario</th>
                             </tr>
@@ -94,23 +95,40 @@
                                 <td><code>Recruiter@NFSU2026!</code></td>
                                 <td>Google Drive, Shortlist, Offers</td>
                             </tr>
+                            <tr class="table-light">
+                                <td colspan="4" class="py-1 text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">
+                                    <i class="bi bi-mortarboard-fill me-1"></i> Students (Login directly via Student ID or Username)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-role-student">Student (Unplaced)</span></td>
+                                <td><strong class="font-monospace text-primary">NFSU2024DFIS03</strong> <span class="text-muted small">or student_unplaced</span></td>
+                                <td><code>Student@NFSU2026!</code></td>
+                                <td>CGPA 8.0, Unplaced (Open to apply)</td>
+                            </tr>
                             <tr>
                                 <td><span class="badge badge-role-student">Student (A+)</span></td>
-                                <td><code>student_aplus</code></td>
+                                <td><strong class="font-monospace text-primary">NFSU2024DFIS01</strong> <span class="text-muted small">or student_aplus</span></td>
                                 <td><code>Student@NFSU2026!</code></td>
                                 <td>CGPA 9.2, Tier A+ Placed (Frozen)</td>
                             </tr>
                             <tr>
                                 <td><span class="badge badge-role-student">Student (B)</span></td>
-                                <td><code>student_b</code></td>
+                                <td><strong class="font-monospace text-primary">NFSU2024DFIS02</strong> <span class="text-muted small">or student_b</span></td>
                                 <td><code>Student@NFSU2026!</code></td>
                                 <td>CGPA 8.4, Tier B (1.5x Upgrade Rule)</td>
                             </tr>
                             <tr>
-                                <td><span class="badge badge-role-student">Student (Unplaced)</span></td>
-                                <td><code>student_unplaced</code></td>
+                                <td><span class="badge badge-role-student">Student (Ineligible)</span></td>
+                                <td><strong class="font-monospace text-primary">NFSU2024DFIS04</strong> <span class="text-muted small">or student_ineligible</span></td>
                                 <td><code>Student@NFSU2026!</code></td>
-                                <td>CGPA 7.5, Unplaced, Open to apply</td>
+                                <td>CGPA 6.0, Ineligible for 7.0 threshold</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-role-student">Student (Disciplined)</span></td>
+                                <td><strong class="font-monospace text-primary">NFSU2024DFIS05</strong> <span class="text-muted small">or student_absent</span></td>
+                                <td><code>Student@NFSU2026!</code></td>
+                                <td>Banned (2 Drives) for interview absence</td>
                             </tr>
                         </tbody>
                     </table>

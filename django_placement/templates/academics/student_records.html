@@ -1,20 +1,60 @@
 {% extends 'base.html' %}
 
-{% block title %}Student Academic Records{% endblock %}
+{% block title %}All Students Registry | NFSU{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="h4 fw-bold mb-1"><i class="bi bi-person-check-fill text-primary me-2"></i>Academic Verification Queue</h2>
-        <p class="text-muted small mb-0">Verify Academic Integrity, CGPA Scores, and Placement Candidacy</p>
+        <h2 class="h4 fw-bold mb-1">
+            <i class="bi bi-people-fill text-primary me-2"></i>
+            {% if user_role == 'COORDINATOR' %}Assigned Students Registry{% else %}Central Student Placement Registry{% endif %}
+        </h2>
+        <p class="text-muted small mb-0">Unified student directory — view academic profiles, placement candidacy, and institutional Student IDs</p>
     </div>
 </div>
 
-<!-- Filters -->
+<!-- Registry Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card card-custom p-3 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Students</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ total_count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card card-custom p-3 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Verified</div>
+            <div class="fs-4 fw-bold text-success mt-1">{{ verified_count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="card card-custom p-3 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Pending Review</div>
+            <div class="fs-4 fw-bold text-warning mt-1">{{ unverified_count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Placed Students</div>
+            <div class="fs-4 fw-bold text-info mt-1">{{ placed_count }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-3">
+        <div class="card card-custom p-3 border-start border-4 border-secondary">
+            <div class="text-muted small fw-semibold text-uppercase">Unplaced (Open)</div>
+            <div class="fs-4 fw-bold text-dark mt-1">{{ unplaced_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Toolbar -->
 <div class="card card-custom p-3 mb-4 bg-light">
     <form method="get" class="row g-2 align-items-center">
         <div class="col-12 col-md-4">
-            <input type="text" name="q" class="form-control form-control-sm" placeholder="Search by name, enrollment..." value="{{ search_query|default:'' }}">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by Student ID, name, email..." value="{{ search_query|default:'' }}">
+            </div>
         </div>
         <div class="col-6 col-md-3">
             <select name="course" class="form-select form-select-sm">
@@ -24,54 +64,96 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-2">
             <select name="status" class="form-select form-select-sm">
-                <option value="All">All Statuses</option>
-                <option value="UNVERIFIED" {% if selected_status == 'UNVERIFIED' %}selected{% endif %}>Unverified</option>
+                <option value="All">All Verification</option>
                 <option value="VERIFIED" {% if selected_status == 'VERIFIED' %}selected{% endif %}>Verified</option>
+                <option value="UNVERIFIED" {% if selected_status == 'UNVERIFIED' %}selected{% endif %}>Pending Review</option>
                 <option value="REJECTED" {% if selected_status == 'REJECTED' %}selected{% endif %}>Rejected</option>
             </select>
         </div>
-        <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100">Filter Records</button>
+        <div class="col-6 col-md-2">
+            <select name="placement" class="form-select form-select-sm">
+                <option value="All">All Placement States</option>
+                <option value="UNPLACED" {% if selected_placement == 'UNPLACED' %}selected{% endif %}>Unplaced</option>
+                <option value="PLACED_FTE" {% if selected_placement == 'PLACED_FTE' %}selected{% endif %}>Placed (FTE)</option>
+                <option value="PLACED_INTERN" {% if selected_placement == 'PLACED_INTERN' %}selected{% endif %}>Placed (Intern)</option>
+                <option value="PLACED_IF" {% if selected_placement == 'PLACED_IF' %}selected{% endif %}>Placed (I+F)</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-1">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
         </div>
     </form>
 </div>
 
-<!-- Records Table -->
+<!-- Unified All Students Table -->
 <div class="card card-custom">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h3 class="h6 fw-bold mb-0">Student Directory ({{ records.count }} Records Found)</h3>
+        <span class="small text-muted"><i class="bi bi-info-circle me-1"></i> Students sign in using their <strong>Student ID</strong> or username</span>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 small">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-4">Student</th>
-                        <th>Enrollment No</th>
-                        <th>Programme</th>
-                        <th>Verified CGPA</th>
-                        <th>Backlogs</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Verification</th>
+                        <th class="ps-4">Student ID (Login ID)</th>
+                        <th>Student Name & Email</th>
+                        <th>Academic Programme</th>
+                        <th>CGPA / Backlogs</th>
+                        <th>Placement Outcome</th>
+                        <th>Verification</th>
+                        <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for rec in records %}
                         <tr>
                             <td class="ps-4">
+                                <span class="badge bg-dark font-monospace px-2 py-1 fs-7">
+                                    {{ rec.enrollment_number }}
+                                </span>
+                                <div class="text-muted small mt-1">@{{ rec.user.username }}</div>
+                            </td>
+                            <td>
                                 <div class="fw-bold text-dark">{{ rec.user.get_full_name|default:rec.user.username }}</div>
-                                <div class="text-muted small">@{{ rec.user.username }}</div>
+                                <div class="text-muted small">{{ rec.user.email|default:"No institutional email" }}</div>
                             </td>
-                            <td><code>{{ rec.enrollment_number }}</code></td>
                             <td>
-                                <div>{{ rec.course.code }}</div>
-                                <small class="text-muted">{{ rec.course.department.code }}</small>
+                                <div class="fw-semibold">{{ rec.course.code }}</div>
+                                <div class="text-muted small">{{ rec.course.department.code }}</div>
                             </td>
-                            <td><strong>{{ rec.cgpa }}</strong></td>
                             <td>
-                                {% if rec.active_backlogs > 0 %}
-                                    <span class="badge bg-danger">{{ rec.active_backlogs }} Active</span>
+                                <div><strong>CGPA: {{ rec.cgpa }}</strong></div>
+                                <small>
+                                    {% if rec.active_backlogs > 0 %}
+                                        <span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle"></i> {{ rec.active_backlogs }} Backlog(s)</span>
+                                    {% else %}
+                                        <span class="text-success"><i class="bi bi-check2"></i> 0 Backlogs</span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                {% if rec.current_placement_status == 'UNPLACED' %}
+                                    <span class="badge bg-secondary">Unplaced</span>
+                                {% elif rec.current_tier == 'A_PLUS' %}
+                                    <span class="badge bg-danger">Tier A+ (Placed & Frozen)</span>
+                                    <div class="small text-muted mt-1">{{ rec.current_company }} • ₹{{ rec.current_ctc }} LPA</div>
+                                {% elif rec.current_tier == 'B' %}
+                                    <span class="badge bg-info text-dark">Tier B (Upgrade Open)</span>
+                                    <div class="small text-muted mt-1">{{ rec.current_company }} • ₹{{ rec.current_ctc }} LPA</div>
                                 {% else %}
-                                    <span class="badge bg-success">0</span>
+                                    <span class="badge bg-primary">{{ rec.get_current_placement_status_display }}</span>
+                                    <div class="small text-muted mt-1">{{ rec.current_company }} • ₹{{ rec.current_ctc }} LPA</div>
+                                {% endif %}
+
+                                {% if rec.remaining_ban_drives > 0 %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="bi bi-slash-circle"></i> Banned ({{ rec.remaining_ban_drives }} Drives)
+                                        </span>
+                                    </div>
                                 {% endif %}
                             </td>
                             <td>
@@ -90,14 +172,17 @@
                                 {% endif %}
                             </td>
                             <td class="text-end pe-4">
-                                <a href="{% url 'academics:verify_student' rec.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-pencil-square"></i> Review & Verify
+                                <a href="{% url 'academics:verify_student' rec.id %}" class="btn btn-outline-primary btn-sm py-1 px-2" title="Review student verification">
+                                    <i class="bi bi-pencil-square"></i> Review
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No student academic records match the selected scope.</td>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-person-slash fs-1 d-block mb-2 text-secondary"></i>
+                                No student academic records found matching the search criteria.
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
