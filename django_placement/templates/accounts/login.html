@@ -1,141 +1,278 @@
 {% extends 'base.html' %}
 
-{% block title %}Secure Sign In{% endblock %}
+{% block title %}Sign In | NFSU Placement Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-container {
+        min-height: calc(100vh - 220px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .auth-card {
+        background: #ffffff;
+        border-radius: 1rem;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 20px 40px -15px rgba(10, 37, 64, 0.08);
+        overflow: hidden;
+        width: 100%;
+        max-width: 960px;
+    }
+
+    .auth-hero-pane {
+        background: linear-gradient(145deg, #061826 0%, #0a2540 60%, #13385e 100%);
+        color: white;
+        padding: 3.5rem 2.5rem;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .auth-hero-pane::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 4px;
+        background: #d97706;
+    }
+
+    .auth-form-pane {
+        padding: 3.5rem 3rem;
+        background: #ffffff;
+    }
+
+    .form-control-custom {
+        height: 48px;
+        border-radius: 0.5rem;
+        border: 1px solid #cbd5e1;
+        font-size: 0.95rem;
+        padding-left: 2.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control-custom:focus {
+        border-color: #0a2540;
+        box-shadow: 0 0 0 3px rgba(10, 37, 64, 0.12);
+    }
+
+    .input-icon-wrapper {
+        position: relative;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        z-index: 4;
+        font-size: 1.1rem;
+    }
+
+    .btn-password-toggle {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        z-index: 5;
+    }
+
+    .btn-auth-submit {
+        background-color: #0a2540;
+        color: #ffffff;
+        height: 48px;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .btn-auth-submit:hover {
+        background-color: #061826;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(10, 37, 64, 0.2);
+    }
+
+    .hero-feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #cbd5e1;
+    }
+
+    .hero-feature-item i {
+        color: #f59e0b;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center py-4">
-    <div class="col-12 col-md-8 col-lg-5">
-        <div class="card card-custom p-4 p-md-5">
-            <div class="text-center mb-4">
-                <div class="d-inline-flex p-3 rounded-circle bg-light mb-3">
-                    <i class="bi bi-shield-lock-fill text-primary fs-1"></i>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="row g-0">
+            <!-- Left Pane: University Institutional Brand -->
+            <div class="col-12 col-lg-5 auth-hero-pane d-none d-lg-flex">
+                <div>
+                    <div class="d-inline-flex p-2 bg-white rounded-circle shadow-sm mb-3">
+                        <i class="bi bi-shield-shaded text-primary fs-3"></i>
+                    </div>
+                    <div class="text-uppercase fw-semibold" style="color: #f59e0b; font-size: 0.75rem; letter-spacing: 0.1em;">
+                        Ministry of Home Affairs
+                    </div>
+                    <h2 class="h4 fw-bold text-white mt-1 mb-3">
+                        National Forensic Sciences University
+                    </h2>
+                    <p class="text-light opacity-75 small line-height-base mb-4">
+                        Centralized Training & Placement Directorate for postgraduate and research programmes in cybersecurity and digital forensics.
+                    </p>
+
+                    <div class="pt-2">
+                        <div class="hero-feature-item">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Policy-Driven Eligibility Engine (Clause 3.2)</span>
+                        </div>
+                        <div class="hero-feature-item">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Role-Based Access Control & Scoped Isolation</span>
+                        </div>
+                        <div class="hero-feature-item">
+                            <i class="bi bi-fingerprint"></i>
+                            <span>Cryptographic SHA-256 Audit Trail</span>
+                        </div>
+                    </div>
                 </div>
-                <h2 class="h4 fw-bold mb-1">Placement Portal Authentication</h2>
-                <p class="text-muted small">Sign in with your NFSU institutional credentials</p>
+
+                <div class="pt-4 border-top border-secondary border-opacity-25 text-white-50 small">
+                    <i class="bi bi-lock-fill me-1"></i> Authorized Institutional Access Only
+                </div>
             </div>
 
-            <form method="post" action="{% url 'accounts:login' %}">
-                {% csrf_token %}
+            <!-- Right Pane: Elegant, Clean Sign-In Form -->
+            <div class="col-12 col-lg-7 auth-form-pane">
+                <div class="mb-4">
+                    <h3 class="h4 fw-bold text-dark mb-1">Institutional Sign In</h3>
+                    <p class="text-muted small">Sign in with your Student ID, institutional email, or username.</p>
+                </div>
 
                 {% if form.non_field_errors %}
-                    <div class="alert alert-danger py-2 small">
+                    <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3" role="alert">
                         {% for err in form.non_field_errors %}
-                            <div><i class="bi bi-exclamation-circle-fill me-1"></i> {{ err }}</div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ err }}
+                            </div>
                         {% endfor %}
                     </div>
                 {% endif %}
 
-                <div class="mb-3">
-                    <label for="id_username" class="form-label fw-semibold small">Student ID / Username / Institutional Email</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
-                        <input type="text" name="username" id="id_username" class="form-control" placeholder="e.g. NFSU2024DFIS03 or admin" required autofocus>
+                <form method="post" action="{% url 'accounts:login' %}" autocomplete="off">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label small fw-semibold text-secondary">Student ID / Username / Email</label>
+                        <div class="input-icon-wrapper">
+                            <i class="bi bi-person-badge input-icon"></i>
+                            <input 
+                                type="text" 
+                                name="username" 
+                                id="id_username" 
+                                class="form-control form-control-custom" 
+                                placeholder="e.g. NFSU2024DFIS03 or admin" 
+                                required 
+                                autofocus
+                            >
+                        </div>
                     </div>
-                    <div class="form-text small">Students can sign in directly using their <strong>Student ID (e.g. NFSU2024DFIS03)</strong>.</div>
-                </div>
 
-                <div class="mb-4">
-                    <label for="id_password" class="form-label fw-semibold small">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-                        <input type="password" name="password" id="id_password" class="form-control" placeholder="••••••••" required>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="id_password" class="form-label small fw-semibold text-secondary mb-0">Password</label>
+                        </div>
+                        <div class="input-icon-wrapper">
+                            <i class="bi bi-key input-icon"></i>
+                            <input 
+                                type="password" 
+                                name="password" 
+                                id="id_password" 
+                                class="form-control form-control-custom pe-5" 
+                                placeholder="Enter your password" 
+                                required
+                            >
+                            <button type="button" class="btn-password-toggle" id="togglePasswordBtn" title="Show password">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-auth-submit">
+                            Sign In to Portal
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 pt-3 text-center border-top">
+                    <div class="text-muted small">
+                        Protected by automated lockout after 5 consecutive failed attempts.
+                    </div>
+                    <!-- Discrete Helper for Evaluation -->
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none text-muted" data-bs-toggle="collapse" data-bs-target="#evaluationHelper" style="font-size: 0.8rem;">
+                            <i class="bi bi-question-circle me-1"></i> Evaluation Personas Guide
+                        </button>
+                    </div>
+
+                    <div class="collapse mt-3 text-start" id="evaluationHelper">
+                        <div class="card card-body bg-light border-0 p-3 small text-muted">
+                            <div class="fw-semibold text-dark mb-1">Evaluation Sign-In Options:</div>
+                            <ul class="mb-0 ps-3" style="font-size: 0.82rem;">
+                                <li><strong>Admin</strong>: <code>admin</code></li>
+                                <li><strong>Placement Officer</strong>: <code>officer</code></li>
+                                <li><strong>Coordinator</strong>: <code>coord_dfis</code></li>
+                                <li><strong>Recruiter</strong>: <code>recruiter_google</code></li>
+                                <li><strong>Student</strong>: Enter Student ID (e.g. <code>NFSU2024DFIS03</code>)</li>
+                            </ul>
+                            <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                                <em>Passwords provided in evaluation documentation.</em>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-nfsu-primary py-2 fw-semibold">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Secure Authentication
-                    </button>
-                </div>
-            </form>
-
-            <div class="mt-4 pt-3 border-top text-center text-muted small">
-                <i class="bi bi-lock-fill text-secondary"></i> Protected by Rate-Limiting & Auto-Lockout after 5 failed attempts.
             </div>
         </div>
-
-        <!-- Demo Credentials Accordion for Testing and Evaluation -->
-        <div class="card card-custom mt-3">
-            <div class="card-body p-3">
-                <h3 class="h6 fw-bold mb-2 text-primary d-flex align-items-center">
-                    <i class="bi bi-key-fill me-2"></i> Evaluation Credentials (All 5 Roles & Student IDs)
-                </h3>
-                <div class="table-responsive">
-                    <table class="table table-sm table-borderless small mb-0">
-                        <thead class="table-light">
-                            <tr class="border-bottom">
-                                <th>Role</th>
-                                <th>Login ID / Student ID</th>
-                                <th>Password</th>
-                                <th>Scenario</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="badge badge-role-admin">Admin</span></td>
-                                <td><code>admin</code></td>
-                                <td><code>Admin@NFSU2026!</code></td>
-                                <td>Full Control, Audit logs, RBAC</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-officer">Officer</span></td>
-                                <td><code>officer</code></td>
-                                <td><code>Officer@NFSU2026!</code></td>
-                                <td>Company & Drive approvals, Reports</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-coordinator">Coordinator</span></td>
-                                <td><code>coord_dfis</code></td>
-                                <td><code>Coord@NFSU2026!</code></td>
-                                <td>Scoped to M.Sc. DFIS Students</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-recruiter">Recruiter</span></td>
-                                <td><code>recruiter_google</code></td>
-                                <td><code>Recruiter@NFSU2026!</code></td>
-                                <td>Google Drive, Shortlist, Offers</td>
-                            </tr>
-                            <tr class="table-light">
-                                <td colspan="4" class="py-1 text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">
-                                    <i class="bi bi-mortarboard-fill me-1"></i> Students (Login directly via Student ID or Username)
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-student">Student (Unplaced)</span></td>
-                                <td><strong class="font-monospace text-primary">NFSU2024DFIS03</strong> <span class="text-muted small">or student_unplaced</span></td>
-                                <td><code>Student@NFSU2026!</code></td>
-                                <td>CGPA 8.0, Unplaced (Open to apply)</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-student">Student (A+)</span></td>
-                                <td><strong class="font-monospace text-primary">NFSU2024DFIS01</strong> <span class="text-muted small">or student_aplus</span></td>
-                                <td><code>Student@NFSU2026!</code></td>
-                                <td>CGPA 9.2, Tier A+ Placed (Frozen)</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-student">Student (B)</span></td>
-                                <td><strong class="font-monospace text-primary">NFSU2024DFIS02</strong> <span class="text-muted small">or student_b</span></td>
-                                <td><code>Student@NFSU2026!</code></td>
-                                <td>CGPA 8.4, Tier B (1.5x Upgrade Rule)</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-student">Student (Ineligible)</span></td>
-                                <td><strong class="font-monospace text-primary">NFSU2024DFIS04</strong> <span class="text-muted small">or student_ineligible</span></td>
-                                <td><code>Student@NFSU2026!</code></td>
-                                <td>CGPA 6.0, Ineligible for 7.0 threshold</td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge badge-role-student">Student (Disciplined)</span></td>
-                                <td><strong class="font-monospace text-primary">NFSU2024DFIS05</strong> <span class="text-muted small">or student_absent</span></td>
-                                <td><code>Student@NFSU2026!</code></td>
-                                <td>Banned (2 Drives) for interview absence</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Password toggle functionality
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const passwordInput = document.getElementById('id_password');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+
+    if (toggleBtn && passwordInput) {
+        toggleBtn.addEventListener('click', function () {
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+            toggleIcon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+        });
+    }
+</script>
 {% endblock %}
