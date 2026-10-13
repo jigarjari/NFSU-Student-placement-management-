@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.db.models import Q
 
 from accounts.decorators import role_required
-from .models import Course, Department, StudentAcademicRecord, VerificationStatus
+from .models import Course, Department, StudentAcademicRecord, VerificationStatus, PlacementStatus
 from auditlog.services import log_security_event
 
 
